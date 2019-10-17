@@ -180,8 +180,8 @@ preSetKeyMap() {
     3>&1 1>&2 2>&3)
     then
 
-    loadkeys "${choice}"
     DEFKEYMAP="${choice}"
+    loadkeys "${choice}"
   fi
 
 }
@@ -203,8 +203,8 @@ preSetFont() {
     3>&1 1>&2 2>&3)
     then
 
-    eval "$(setfont "${choice}")"
     DEFVCFONT="${choice}"
+    eval "$(setfont "${choice}")"
   fi
 
 }
@@ -225,9 +225,9 @@ preSetEditor() {
     3>&1 1>&2 2>&3)
     then
 
-    export EDITOR=${choice}
     EDITOR=${choice}
     DEFEDITOR=${choice}
+    export "${EDITOR?}"
   fi
 
 }
@@ -249,12 +249,12 @@ preDetectBoot() {
 preSyncTime() {
 
   if timedatectl set-ntp true; then
-    text="NTP synchronization successful..."
+    result="Success"
   else
-    text="NTP synchronization failed..."
+    result="Fail"
   fi
 
-  winComplete "${menuSetupTime[0]}" "${text}"
+  winComplete "${menuSetupTime[0]}" "${result}"
 
 }
 
@@ -905,9 +905,8 @@ postSetLocale() {
     clear
     echo "LANG=${choice}.UTF-8" > /mnt/etc/locale.conf
     echo "LC_COLLATE=C" >> /mnt/etc/locale.conf
-    sed -i '/'${choice}'.UTF-8/s/^#//g' /mnt/etc/locale.gen
+    sed -i "/${choice}.UTF-8/s/^#//g" /mnt/etc/locale.gen
 
-    DEFLOCALE="${choice}"
     execChroot setlocale
   fi
 
@@ -937,7 +936,6 @@ postSetKeymap() {
     3>&1 1>&2 2>&3)
     then
 
-    DEFKEYMAP="${choice}"
     echo "KEYMAP=${choice}" > /mnt/etc/vconsole.conf
   fi
 
@@ -960,7 +958,6 @@ postSetFont() {
     3>&1 1>&2 2>&3)
     then
 
-    DEFVCFONT="${choice}"
     echo "FONT=${choice}" >> /mnt/etc/vconsole.conf
   fi
 
@@ -1346,7 +1343,7 @@ winComplete() {
 tuiComplete() {
 
   [[ -n "$*" ]] && echo "$*"
-  read -n1 -rp "Press any key to continue..."
+  read -n1 -r -p "Press any key to continue..."
 
 }
 
