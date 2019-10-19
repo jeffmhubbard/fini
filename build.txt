@@ -1,0 +1,17 @@
+cava
+gcalcli
+gmusicproxy
+i3ipc-glib-git
+i3lock-color-git
+neofetch-git
+nerd-fonts-complete
+no-more-secrets
+oomox-git
+otf-font-awesome-4
+polybar
+rxvt-unicode-cvs-patched-wideglyphs
+teiler-git
+unclutter-xfixes-git
+wmfocus-git
+xcursor-openzone
+xininfo-git
