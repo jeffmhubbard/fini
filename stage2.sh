@@ -2,7 +2,7 @@
 
 runDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-buildDir="$HOME/test/Source/AUR"
+buildDir="$HOME/Source/AUR"
 buildList="$runDir/build.txt"
 
 getAuracle() {
@@ -46,14 +46,14 @@ buildAur() {
 
   #pushd "$1" >/dev/null ||exit
   cd "$1" ||exit
-  if [ -f "PKGBUILD" ]
+  if [ ! -f "PKGBUILD" ]
   then
-    makepkg -si --noconfirm --needed
-    return $?
-  else
-    echo "Could not find 'PKGBUILD' file!"
-    return1
+    echo "Could not find 'PKGBUILD' file in '$1'!"
+    return 1
   fi
+
+  makepkg -sric --noconfirm --needed
+    return $?
   #popd >/dev/null ||exit
   cd "$(dirname "$0")" ||exit
 
@@ -96,10 +96,16 @@ buildPkg() {
       SATISFIED*)
         echo "Package '$name' is already installed!"
         ;;
-      AUR|TARGETAUR)
+      AUR)
+        echo "Building '$name' as dependency"
+        buildPkg "$name"
+        cd "$(dirname "$0")" ||return 1
+        ;;
+      TARGETAUR)
+        echo "Building target '$name'"
         cloneAur "$name"
         buildAur "$srcDir"
-        cd "$(dirname "$0")" || return 1
+        cd "$(dirname "$0")" ||return 1
         ;;
       *)
         echo "Unhandled action '$id' for '$name'"
@@ -111,7 +117,7 @@ buildPkg() {
 
 usage() {
 
-  echo "Usage: $(basename "$0") -d <PATH>] [-t <MIN>] [-b <MODE>] [-s]"
+  echo "Usage: $(basename "$0") [-l <PATH>]"
 
 }
 
@@ -145,8 +151,9 @@ main() {
 }
 
 # process command line arguments
-while getopts :d:t:b:shD ARGS; do
+while getopts l:h ARGS; do
   case "${ARGS}" in
+    l) buildList="$runDir/${OPTARG}";;
     h|*) usage; exit 1;;
   esac
 done
