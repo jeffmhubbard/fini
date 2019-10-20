@@ -19,9 +19,9 @@ i3-gaps
 i3lock-color
 i3status
 imagemagick
+inetutils
 ipython
 irssi
-linux
 linux-firmware
 lm_sensors
 lxappearance
@@ -71,4 +71,3 @@ zathura
 zathura-pdf-mupdf
 zip
 zsh
-zsh-autosuggestions
