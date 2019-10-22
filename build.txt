@@ -1,12 +1,12 @@
 cava
 gcalcli
 i3ipc-glib-git
-i3lock-color-git
+i3lock-color-git i3lock-color
 nerd-fonts-noto-sans-regular-complete
-neofetch-git
+neofetch-git neofetch
 polybar
-rxvt-unicode-cvs-patched-wideglyphs
+rxvt-unicode-cvs-patched-wideglyphs rxvt-unicode
 ttf-nerd-fonts-hack-complete-git
-unclutter-xfixes-git
-wmfocus-git
+unclutter-xfixes-git unclutter
+wmfocus-git wmfocus
 xcursor-openzone
