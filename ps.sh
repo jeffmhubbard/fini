@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+# A simple post-install script to install auracle and a list of packages 
+# from AUR. It looks for './build.txt' or use -l to specify a file
+# The format is one package per line. Optional second field should be the
+# name of package it will replace
+# Ex: i3-gaps-next-git i3-gaps
+# In this case, i3-gaps will be uninstalled BEFORE building i3-gaps-next-git
+# This is circumventing an intentional safeguard in pacman, don't use this
+
 # script path
 runDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # AUR cache
@@ -29,12 +37,16 @@ main() {
 
   # read in build list
   readPkgList
+  
+  # do a bunch of checks then build pkg
   for item in "${toBuild[@]}"
   do
+    unset replace
     read -r -a fields <<< "$item"
+
     if [[ "${#fields[@]}" -gt 1 ]]
     then
-      provide="${fields[1]}"
+      replace="${fields[1]}"
     fi
     pkg="${fields[0]}"
 
@@ -45,16 +57,17 @@ main() {
     elif checkAurExists "$pkg"
     then
 
-      if checkPkgExists "$provide"
+      if checkPkgExists "$replace"
       then
-        if ! sudo pacman -R --noconfirm "$provide" 2>/dev/null
+        if ! sudo pacman -R --noconfirm "$replace" 2>/dev/null
         then
-          echo "Failed to remove '$provide' before building '$pkg'!"
+          echo "Failed to remove '$replace' before building '$pkg'!"
         fi
       fi
 
       buildPkg "$pkg"
     fi
+
   done
 
 }
@@ -123,23 +136,15 @@ readPkgList() {
   toBuild=()
   while IFS= read -r line
   do
-    toBuild+=("${line}")
+    toBuild+=("${line[@]}")
   done < "${pkgList}"
-
-}
-
-# check if package is currently installed
-checkPkgInstall() {
-
-  pacman -Qi "$1" >/dev/null
-  return $?
 
 }
 
 # check if package is currently installed
 checkPkgExists() {
 
-  pacman -Qs "$1" >/dev/null
+  pacman -Qs "^$1$" >/dev/null
   return $?
 
 }
@@ -147,7 +152,7 @@ checkPkgExists() {
 # check if repo exists on aur
 checkAurExists() {
 
-  if [[ -n $(auracle search "^${pkgName}$" 2>/dev/null) ]]
+  if [ -n "$(auracle search "^${pkgName}$" 2>/dev/null)" ]
   then
     return 1
   fi
@@ -202,4 +207,4 @@ main
 
 exit 0
 
-# vim: ft=sh ts=2 sw=0 et:
+# vim: ft=bash ts=2 sw=0 et:
