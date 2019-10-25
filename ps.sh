@@ -19,15 +19,13 @@ buildList="$runDir/build.txt"
 main() {
 
   # create cache
-  if [ ! -d "$buildDir" ]
-  then
+  if [ ! -d "$buildDir" ]; then
     mkdir -p "$buildDir"
     echo "Created build directory '$buildDir'"
   fi
 
   # check for build list
-  if [ ! -f "$buildList" ]
-  then
+  if [ ! -f "$buildList" ]; then
     echo "Invalid build list '$buildList'"
     exit 1
   fi
@@ -39,35 +37,27 @@ main() {
   readPkgList
   
   # do a bunch of checks then build pkg
-  for item in "${toBuild[@]}"
-  do
+  for item in "${toBuild[@]}"; do
     unset replace
     read -r -a fields <<< "$item"
 
-    if [[ "${#fields[@]}" -gt 1 ]]
-    then
+    if [[ "${#fields[@]}" -gt 1 ]]; then
       replace="${fields[1]}"
     fi
     pkg="${fields[0]}"
 
-    if checkPkgExists "$pkg"
-    then
+    if checkPkgExists "$pkg"; then
       continue
 
-    elif checkAurExists "$pkg"
-    then
-
-      if checkPkgExists "$replace"
-      then
-        if ! sudo pacman -R --noconfirm "$replace" 2>/dev/null
-        then
+    elif checkAurExists "$pkg"; then 
+      if checkPkgExists "$replace"; then
+        if ! sudo pacman -R --noconfirm "$replace" 2>/dev/null; then
           echo "Failed to remove '$replace' before building '$pkg'!"
         fi
       fi
 
       buildPkg "$pkg"
     fi
-
   done
 
 }
@@ -75,12 +65,11 @@ main() {
 # download and install auracle
 getAuracle() {
 
-  if [[ -z $(command -v auracle 2>/dev/null) ]]
-  then
+  if [[ -z $(command -v auracle 2>/dev/null) ]]; then
     echo "Could not locate 'auracle'!"
     read -n1 -r -p "Install now? (y/n) " input 
     echo
-    case "$input" in  
+    case "$input" in
       y|Y)
         cloneAur "auracle-git"
         makePkg "$srcDir"
@@ -101,10 +90,8 @@ cloneAur() {
   local repoUrl="https://aur.archlinux.org/${pkgName}.git"
   srcDir="$buildDir/$pkgName"
 
-  if [ ! -d "$srcDir" ]
-  then
-    if git clone "$repoUrl" "$srcDir" 2>/dev/null
-    then
+  if [ ! -d "$srcDir" ]; then
+    if git clone "$repoUrl" "$srcDir" 2>/dev/null; then
       echo "Cloned '$pkgName'"
     fi
   fi
@@ -116,8 +103,7 @@ makePkg() {
 
   cd "$1" ||exit
 
-  if [ ! -f "PKGBUILD" ]
-  then
+  if [ ! -f "PKGBUILD" ]; then
     echo "Could not find 'PKGBUILD' file in '$1'!"
     return 1
   fi
@@ -134,8 +120,7 @@ readPkgList() {
 
   pkgList="$buildList"
   toBuild=()
-  while IFS= read -r line
-  do
+  while IFS= read -r line; do
     toBuild+=("${line[@]}")
   done < "${pkgList}"
 
@@ -152,8 +137,7 @@ checkPkgExists() {
 # check if repo exists on aur
 checkAurExists() {
 
-  if [ -n "$(auracle search "^${pkgName}$" 2>/dev/null)" ]
-  then
+  if [ -n "$(auracle search "^${pkgName}$" 2>/dev/null)" ]; then
     return 1
   fi
 
