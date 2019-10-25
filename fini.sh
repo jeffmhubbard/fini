@@ -7,7 +7,9 @@ DEFVCFONT="default8x16"
 DEFTIMZON="America/Chicago"
 DEFEDITOR="vim"
 
-# Main menu
+runDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+pkgList="$runDir/packages.txt"
+
 installMenu() {
 
   if [ "${1}" = "" ]; then
@@ -643,8 +645,7 @@ installSelectMenu() {
 
 readCustomFile() {
 
-  runDir="$(dirname "${0}")"
-  pkgFile="${runDir}/packages.txt"
+  pkgFile="$pkgList"
   packages=()
   while IFS= read -r line
   do
@@ -861,12 +862,22 @@ postSetTime() {
 
   if (whiptail --backtitle "${appName}" \
     --title "${menuTimeUtc[0]}" \
-    --yesno "Is hardware clock set to UTC?" 0 0) \
+    --yesno "${menuTimeUtc[2]}" 0 0) \
     then
 
     execChroot settimeutc
   else
     execChroot settimelocal
+  fi
+
+  if (whiptail \
+    --backtitle "${appName}" \
+    --title "${menuTimeSync[0]}" \
+    --yesno "${menuTimeSync[2]}" 0 0)
+    then
+
+    clear
+    execChroot enabletimesyncd
   fi
 
 }
@@ -881,6 +892,13 @@ chrootSetTimeUTC() {
 chrootSetTimeLocal() {
 
   hwclock --systohc --localtime
+  exit
+
+}
+
+chrootEnableTimesync() {
+
+  systemctl enable systemd-timesyncd
   exit
 
 }
@@ -1398,7 +1416,8 @@ loadStrings() {
   menuConfTime=("Timezone" "Set System Timezone" "")
   menuTimeRegion=("Region" "Select Region" "")
   menuTimeCity=("City" "Select City" "")
-  menuTimeUtc=("Hardware Clock" "Confirm Hardware Clock" "")
+  menuTimeUtc=("Hardware Clock" "Confirm Hardware Clock" "Is hardware clock set to UTC?")
+  menuTimeSync=("Internet Time" "Confirm Internet Time" "Sync time with Internet?")
 
   menuConfLocale=("Localization" "Set System Locale" "")
   menuConfKeymap=("Keyboard Layout" "Set Keyboard Layout" "")
@@ -1453,6 +1472,9 @@ while (( "$#" )); do
       usage
       exit 0
     ;;
+    -l | --pkg-list)
+      pkgList="$runDir/${2}"
+    ;;
     --skip-mount)
       haveMount=1
     ;;
@@ -1472,6 +1494,7 @@ if [ "${chroot}" = "1" ]; then
     "settimelocal") chrootSetTimeLocal;;
     "setlocale") chrootSetLocale;;
     "enabledhcpcd") chrootEnableDHCP;;
+    "enabletimesyncd") chrootEnableTimesync;;
     "enablexdm") chrootEnableXDM;;
     "grubinstall") chrootInstallGrub;;
     "grubinstallbios") chrootInstallGrubBIOS "${args}";;
@@ -1496,4 +1519,4 @@ fi
 
 exit 0
 
-# vim: ts=2 sw=0
+# vim: ft=bash ts=2 sw=0 et:
