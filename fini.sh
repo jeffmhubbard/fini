@@ -577,16 +577,20 @@ installSelectMenu() {
   fi
 
   opt=()
-  opt+=("${menuPkgMinimal[1]}" "")
-  opt+=("${menuPkgDesktop[1]}" "")
-  opt+=("${menuPkgCustom[1]}" "")
-  if [ "${havePkgs}" == 1 ]; then
+  opt+=("${menuPkgMinimal[1]}" " ${menuPkgMinimal[2]}")
+  opt+=("${menuPkgDesktop[1]}" " ${menuPkgDesktop[2]}")
+  opt+=("${menuPkgCustom[1]}" " $(basename "$pkgList")")
+  if [ "$havePkgs" == 1 ]; then
     opt+=("" "")
     opt+=("${menuKernelSelect[1]}" "")
   fi
-  if [ "${havePkgs}" == 1 ] && [ "${haveKernel}" == 1 ]; then
+  if [ "$havePkgs" == 1 ] && [ "$haveKernel" == 1 ]; then
     opt+=("" "")
     opt+=("${menuInstallPkgs[1]}" "")
+  fi
+  if [ "$needConfig" == 1 ]; then
+    opt+=("" "")
+    opt+=("${menuInstallDone[1]}" "")
   fi
 
   if choice=$(whiptail \
@@ -600,25 +604,27 @@ installSelectMenu() {
 
     case ${choice} in
       "${menuPkgMinimal[1]}")
-        if packages=("base" "base-devel"); then
+        packages=("base")
+        if [ "${#packages[@]}" -gt 0 ]; then
           havePkgs=1
           nextItem="${menuKernelSelect[1]}"
         fi
       ;;
       "${menuPkgDesktop[1]}")
-        if packages=("base" "base-devel" "vi" "sudo" \
+        packages=("base" "base-devel" "vi" "sudo" \
           "xorg" "xorg-drivers" "xorg-apps" "xorg-xdm" \
           "i3-wm" "i3status" "i3lock-color" "xss-lock" \
           "ttf-dejavu" "dmenu" "surf" "rxvt-unicode" \
           "zsh" "tmux" "vim" "git" "openssh")
-          then
 
+        if [ "${#packages[@]}" -gt 0 ]; then
           havePkgs=1
           nextItem="${menuKernelSelect[1]}"
         fi
       ;;
       "${menuPkgCustom[1]}")
-        if readCustomFile; then
+        readCustomFile "$pkgList"
+        if [ "${#packages[@]}" -gt 0 ]; then
           havePkgs=1
           nextItem="${menuKernelSelect[1]}"
         fi
@@ -635,7 +641,11 @@ installSelectMenu() {
           havePkgs=0
           haveKernel=0
           needConfig=1
+          nextItem="${menuInstallDone[1]}"
         fi
+      ;;
+      "${menuInstallDone[1]}")
+        return
       ;;
     esac
     installSelectMenu "${nextItem}"
@@ -645,12 +655,11 @@ installSelectMenu() {
 
 readCustomFile() {
 
-  pkgFile="$pkgList"
   packages=()
   while IFS= read -r line
   do
     packages+=("${line}")
-  done < "${pkgFile}"
+  done < "${1}"
 
 }
 
@@ -1374,7 +1383,7 @@ loadStrings() {
   strReq="(REQ)"
   strRec="(REC)"
 
-  # Menu entries
+  # Menu entries (title, menu, extra)
   menuMain=("Main Menu" "Install Arch Linux" "")
 
   menuSetupKeys=("Keyboard Layout" "Set Keyboard Layout" "")
@@ -1393,9 +1402,9 @@ loadStrings() {
   menuInstallMount=("Mount Partitions" "Mount New Partitions" "")
 
   menuSelectInstall=("Install Packages" "Install Package Sets" "")
-  menuPkgMinimal=("Minimal" "Install Base System" "")
-  menuPkgDesktop=("Desktop" "Install Minimal Desktop" "")
-  menuPkgCustom=("Custom" "Custom Package Set" "")
+  menuPkgMinimal=("Minimal" "Install Base System" "Just 'base'")
+  menuPkgDesktop=("Desktop" "Install Minimal Desktop" "i3, urxvt, surf")
+  menuPkgCustom=("Custom" "Load Package List" "")
 
   menuKernelSelect=("Select Kernel" "Select Linux Kernel" "")
   menuKernelLinux=("Vanilla" "Install Standard Kernel" "linux")
@@ -1404,6 +1413,7 @@ loadStrings() {
   menuKernelLTS=("LTS" "Install LTS Kernel" "linux-lts")
 
   menuInstallPkgs=("Pacstrap" "Install Selected Software" "")
+  menuInstallDone=("Complete" "Installation Complete" "")
 
   menuConfSystem=("Configure" "Configure New Install" "")
 
@@ -1478,7 +1488,7 @@ while (( "$#" )); do
     -l | --pkg-list)
       pkgList="$runDir/${2}"
     ;;
-    --skip-mount)
+    -m | --skip-mount)
       haveMount=1
     ;;
     --chroot)
@@ -1495,9 +1505,9 @@ if [ "${chroot}" = "1" ]; then
   case ${command} in
     "settimeutc") chrootSetTimeUTC;;
     "settimelocal") chrootSetTimeLocal;;
+    "enabletimesyncd") chrootEnableTimesync;;
     "setlocale") chrootSetLocale;;
     "enabledhcpcd") chrootEnableDHCP;;
-    "enabletimesyncd") chrootEnableTimesync;;
     "enablexdm") chrootEnableXDM;;
     "grubinstall") chrootInstallGrub;;
     "grubinstallbios") chrootInstallGrubBIOS "${args}";;
