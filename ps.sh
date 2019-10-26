@@ -8,6 +8,9 @@
 # In this case, i3-gaps will be uninstalled BEFORE building i3-gaps-next-git
 # This is circumventing an intentional safeguard in pacman, don't use this
 
+appName="$(basename "${0}")"
+appDesc="install list of AUR packages"
+
 # script path
 runDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # AUR cache
@@ -176,6 +179,21 @@ buildPkg() {
 usage() {
 
   echo "Usage: $(basename "$0") [-l <PATH>]"
+
+}
+
+usage() {
+
+cat << EOF
+
+  $appName - $appDesc
+
+  Usage: $appName [-l <PATH>]
+
+  -h | --help        show help
+  -l | --list        custom package list
+
+EOF
 
 }
 

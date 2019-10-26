@@ -3,8 +3,6 @@ i3ipc-glib-git
 i3lock-color-git i3lock-color
 nerd-fonts-noto-sans-regular-complete
 neofetch-git neofetch
-no-more-secrets
-oomox-git
 polybar
 rxvt-unicode-cvs-patched-wideglyphs rxvt-unicode
 ttf-nerd-fonts-hack-complete-git

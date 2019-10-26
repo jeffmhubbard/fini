@@ -510,23 +510,23 @@ prePartMount() {
   msg="Mounted partitions\n\n"
 
   mount "${rootDev}" /mnt
-  msg=${msg}"${rootDev}: /\n"
+  msg=${msg}"/    : ${rootDev}\n"
 
   mkdir /mnt/{boot,home} 2>/dev/null
 
   if [ ! "${bootDev}" = "" ]; then
     mount ${bootDev} /mnt/boot
-    msg=${msg}"${bootDev}: /boot\n"
+    msg=${msg}"/boot: ${bootDev}\n"
   fi
 
   if [ ! "${swapDev}" = "" ]; then
     swapon ${swapDev}
-    msg=${msg}"${swapDev}: swap\n"
+    msg=${msg}" swap: ${swapDev}\n"
   fi
 
   if [ ! "${homeDev}" = "" ]; then
     mount ${homeDev} /mnt/home
-    msg=${msg}"${homeDev}: /home\n"
+    msg=${msg}"/home: ${homeDev}\n"
   fi
 
   if (whiptail \
@@ -534,7 +534,7 @@ prePartMount() {
     --title "${menuInstallMount[0]}" \
     --msgbox "${msg}" 0 0 \
     3>&1 1>&2 2>&3)
-    then
+  then
 
     haveMount=1
   fi
@@ -1423,7 +1423,7 @@ loadStrings() {
   menuFstabPartUuid=("PARTUUID" "genfstab -t PARTUUID" "")
   menuFstabPartLabel=("PARTLABEL" "genfstab -t PARTLABEL" "")
 
-  menuConfTime=("Timezone" "Set System Timezone" "")
+  menuConfTime=("Timezone" "Set System Time" "")
   menuTimeRegion=("Region" "Select Region" "")
   menuTimeCity=("City" "Select City" "")
   menuTimeUtc=("Hardware Clock" "Confirm Hardware Clock" "Is hardware clock set to UTC?")
@@ -1463,9 +1463,9 @@ usage() {
 
 cat << EOF
 
-  ${appName} - ${appDesc}
+  $appName - $appDesc
 
-  Usage: $(basename "$0") [-l <PATH>] [-m]
+  Usage: $appName [-l <PATH>] [-m]
 
   -h | --help        show help
   -l | --pkg-list    custom package list
