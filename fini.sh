@@ -1455,8 +1455,11 @@ cat << EOF
 
   ${appName} - ${appDesc}
 
-  -h | --help     show help
-  --skip-mount    partitions are already mounted
+  Usage: $(basename "$0") [-l <PATH>] [-m]
+
+  -h | --help        show help
+  -l | --pkg-list    custom package list
+  -m | --skip-mount  partitions are already mounted
 
 EOF
 
