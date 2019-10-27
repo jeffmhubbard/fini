@@ -1,6 +1,6 @@
 gcalcli
 i3ipc-glib-git
-i3lock-color-git i3lock-color
+i3lock-color-git i3lock
 nerd-fonts-noto-sans-regular-complete
 neofetch-git neofetch
 polybar

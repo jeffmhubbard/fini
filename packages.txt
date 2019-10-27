@@ -42,6 +42,7 @@ pavucontrol
 polkit-gnome
 pulseaudio-alsa
 pwgen
+qt5-styleplugins
 qutebrowser
 ranger
 reflector

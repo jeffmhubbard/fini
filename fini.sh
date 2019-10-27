@@ -613,7 +613,7 @@ installSelectMenu() {
       "${menuPkgDesktop[1]}")
         packages=("base" "base-devel" "vi" "sudo" \
           "xorg" "xorg-drivers" "xorg-apps" "xorg-xdm" \
-          "i3-wm" "i3status" "i3lock-color" "xss-lock" \
+          "i3-wm" "i3status" "i3lock" "xss-lock" \
           "ttf-dejavu" "dmenu" "surf" "rxvt-unicode" \
           "zsh" "tmux" "vim" "git" "openssh")
 
@@ -829,7 +829,7 @@ postFstabMenu() {
   
 }
 
-# Set the time zone
+# Set the time
 postSetTime() {
 
   list=$(find /mnt/usr/share/zoneinfo -type d -mindepth 1 -maxdepth 1 -printf '%f\n' | sort)
