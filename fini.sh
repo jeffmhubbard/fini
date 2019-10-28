@@ -634,7 +634,7 @@ installSelectMenu() {
         fi
       ;;
       "${menuInstallPkgs[1]}")
-        if pacstrap /mnt "${packages[@]}"; then
+        if pacstrap /mnt --needed "${packages[@]}"; then
           packages=()
           havePkgs=0
           haveKernel=0
@@ -1024,7 +1024,7 @@ postEnableDHCP() {
     then
 
     clear
-    pacstrap /mnt dhcpcd
+    pacstrap /mnt --needed dhcpcd
     execChroot enabledhcpcd
   fi
 
@@ -1137,10 +1137,10 @@ installGrubMenu() {
 installGrub() {
 
   clear
-  pacstrap /mnt grub
+  pacstrap /mnt --needed grub
   
   if [ "${bootType}" == "EFI" ]; then
-    pacstrap /mnt efibootmgr
+    pacstrap /mnt --needed efibootmgr
   fi
 
   clear
@@ -1329,7 +1329,7 @@ chrootUserList() {
 postUserSudo() {
 
   clear
-  pacstrap /mnt sudo
+  pacstrap /mnt --needed sudo
   execChroot uservisudo
 
 }
