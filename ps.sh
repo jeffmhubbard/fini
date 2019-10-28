@@ -178,12 +178,6 @@ buildPkg() {
 
 usage() {
 
-  echo "Usage: $(basename "$0") [-l <PATH>]"
-
-}
-
-usage() {
-
 cat << EOF
 
   $appName - $appDesc

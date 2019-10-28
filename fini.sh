@@ -323,15 +323,13 @@ prePartAssign() {
     return 1
   fi
 
-  if rootDev=$(whiptail \
+  if ! rootDev=$(whiptail \
     --backtitle "${appName}" \
     --title "${menuPartAssign[0]}" \
     --menu "\nChoose 'root' partition" 0 0 0 "${opt[@]}" \
     3>&1 1>&2 2>&3)
     then
 
-    : return
-  else
     return 1
   fi
 
@@ -351,16 +349,16 @@ prePartAssign() {
 
   msg="Does this look correct?\n\n"
   if [ -n "${bootDev}" ]; then
-    msg="${msg}boot:  ${bootDev}\n"
+    msg="${msg}${bootDev##*/}: /boot (${bootType})\n"
   fi
   if [ -n "${swapDev}" ]; then
-    msg="${msg}swap:  ${swapDev}\n"
+    msg="${msg}${swapDev##*/}: swap\n"
   fi
   if [ -n "${rootDev}" ]; then
-    msg="${msg}root:  ${rootDev}\n"
+    msg="${msg}${rootDev##*/}: / (root)\n"
   fi
   if [ -n "${homeDev}" ]; then
-    msg="${msg}home:  ${homeDev}\n"
+    msg="${msg}${homeDev##*/}: /home\n"
   fi
 
   if ! (whiptail \
@@ -510,23 +508,23 @@ prePartMount() {
   msg="Mounted partitions\n\n"
 
   mount "${rootDev}" /mnt
-  msg=${msg}"/    : ${rootDev}\n"
+  msg=${msg}"${rootDev##*/}: / (root)\n"
 
   mkdir /mnt/{boot,home} 2>/dev/null
 
   if [ ! "${bootDev}" = "" ]; then
     mount ${bootDev} /mnt/boot
-    msg=${msg}"/boot: ${bootDev}\n"
+    msg=${msg}"${bootDev##*/}: /boot (${bootType})\n"
   fi
 
   if [ ! "${swapDev}" = "" ]; then
     swapon ${swapDev}
-    msg=${msg}" swap: ${swapDev}\n"
+    msg=${msg}"${swapDev##*/}: swap\n"
   fi
 
   if [ ! "${homeDev}" = "" ]; then
     mount ${homeDev} /mnt/home
-    msg=${msg}"/home: ${homeDev}\n"
+    msg=${msg}"${homeDev##*/}: /home\n"
   fi
 
   if (whiptail \
@@ -579,7 +577,7 @@ installSelectMenu() {
   opt=()
   opt+=("${menuPkgMinimal[1]}" " ${menuPkgMinimal[2]}")
   opt+=("${menuPkgDesktop[1]}" " ${menuPkgDesktop[2]}")
-  opt+=("${menuPkgCustom[1]}" " $(basename "$pkgList")")
+  opt+=("${menuPkgCustom[1]}" " ${pkgList##*/}")
   if [ "$havePkgs" == 1 ]; then
     opt+=("" "")
     opt+=("${menuKernelSelect[1]}" "")
@@ -1320,7 +1318,9 @@ postUserList() {
 
 chrootUserList() {
 
+  echo -e "Users:\n"
   awk -F: '{if ($3 >= 1000 && $3 <= 5000) { print $1 } }' /etc/passwd
+  echo
   tuiComplete
 
 }
@@ -1361,8 +1361,8 @@ winComplete() {
 
   whiptail \
     --backtitle "${appName}" \
-    --title "${1}" \
-    --msgbox "${2}" 0 0 \
+    --title "$1" \
+    --msgbox "$2" 0 0 \
     3>&1 1>&2 2>&3
 
 }
@@ -1463,9 +1463,9 @@ usage() {
 
 cat << EOF
 
-  $appName - $appDesc
+  ${appName} - $appDesc
 
-  Usage: $appName [-l <PATH>] [-m]
+  Usage: ${appName} [-l <PATH>] [-m]
 
   -h | --help        show help
   -l | --pkg-list    custom package list
@@ -1532,4 +1532,4 @@ fi
 
 exit 0
 
-# vim: ft=bash ts=2 sw=0 et:
+# vim: ft=sh ts=2 sw=0 et:
