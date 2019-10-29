@@ -635,6 +635,7 @@ installSelectMenu() {
         fi
       ;;
       "${menuInstallPkgs[1]}")
+        clear
         if pacstrap /mnt --needed "${packages[@]}"; then
           packages=()
           havePkgs=0
@@ -659,6 +660,17 @@ readCustomFile() {
   do
     packages+=("${line}")
   done < "${1}"
+
+}
+
+pkgStrap() {
+
+  if readCustomFile "${1}"; then
+    if pacstrap /mnt --needed "${packages[@]}"; then
+      needConfig=1
+      haveMount=1
+    fi
+  fi
 
 }
 
@@ -892,6 +904,7 @@ postSetTime() {
 
 chrootSetTimeUTC() {
 
+  clear
   hwclock --systohc --utc
   exit
 
@@ -899,6 +912,7 @@ chrootSetTimeUTC() {
 
 chrootSetTimeLocal() {
 
+  clear
   hwclock --systohc --localtime
   exit
 
@@ -906,6 +920,7 @@ chrootSetTimeLocal() {
 
 chrootEnableTimesync() {
 
+  clear
   systemctl enable systemd-timesyncd
   exit
 
@@ -1491,6 +1506,9 @@ while (( "$#" )); do
     ;;
     -m | --skip-mount)
       haveMount=1
+    ;;
+    --pacstrap)
+      pkgStrap "${2}"
     ;;
     --chroot)
       chroot=1
