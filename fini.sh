@@ -534,7 +534,7 @@ prePartMount() {
     3>&1 1>&2 2>&3)
   then
 
-    haveMount=1
+    checkMount
   fi
 
 }
@@ -668,9 +668,18 @@ pkgStrap() {
   if readCustomFile "${1}"; then
     if pacstrap /mnt --needed "${packages[@]}"; then
       needConfig=1
-      haveMount=1
     fi
   fi
+
+}
+
+checkMount() {
+
+  if ! mount | grep " /mnt "; then
+    haveMount=0
+    return 1
+  fi
+  haveMount=1
 
 }
 
@@ -1505,10 +1514,12 @@ while (( "$#" )); do
       pkgList="$runDir/${2}"
     ;;
     -m | --skip-mount)
-      haveMount=1
+      checkMount
     ;;
     --pacstrap)
-      pkgStrap "${2}"
+      if checkMount; then
+        pkgStrap "${2}"
+      fi
     ;;
     --chroot)
       chroot=1
