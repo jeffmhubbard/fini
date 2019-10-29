@@ -27,6 +27,8 @@ lm_sensors
 lxappearance
 mailcap
 maim
+man-db
+man-pages
 mpc
 mpd
 mpv

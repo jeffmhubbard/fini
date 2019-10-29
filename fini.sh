@@ -613,7 +613,8 @@ installSelectMenu() {
           "xorg" "xorg-drivers" "xorg-apps" "xorg-xdm" \
           "i3-wm" "i3status" "i3lock" "xss-lock" \
           "ttf-dejavu" "dmenu" "surf" "rxvt-unicode" \
-          "zsh" "tmux" "vim" "git" "openssh")
+          "zsh" "tmux" "vim" "git" "openssh" \
+          "man-db" "man-pages")
 
         if [ "${#packages[@]}" -gt 0 ]; then
           havePkgs=1
