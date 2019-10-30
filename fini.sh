@@ -36,8 +36,10 @@ installMenu() {
   opt+=("${menuInstallSync[1]}" " ${strOpt}")
   opt+=("${menuSelectInstall[1]}" " ${strReq}")
   if [ "${needConfig}" == 1 ]; then
+    opt+=("" "")
     opt+=("${menuConfSystem[1]}" " ${strReq}")
   fi
+  opt+=("" "")
   if [ "${haveMount}" == 1 ]; then
     opt+=("${menuSysUnmount[1]}" " ${strOpt}")
   fi
@@ -109,7 +111,7 @@ installMenu() {
       ;;
       "${menuSelectInstall[1]}")
         if [ "${haveMount}" == 1 ]; then
-          installSelectMenu
+          pkgSelectMenu
           nextItem="${menuConfSystem[1]}"
         else
           nextItem="${menuInstallMount[1]}"
@@ -566,7 +568,7 @@ installSyncDB() {
 }
 
 # Install the base packages
-installSelectMenu() {
+pkgSelectMenu() {
 
   if [ "${1}" = "" ]; then
     nextItem="."
@@ -575,19 +577,17 @@ installSelectMenu() {
   fi
 
   opt=()
-  opt+=("${menuPkgMinimal[1]}" " ${menuPkgMinimal[2]}")
-  opt+=("${menuPkgDesktop[1]}" " ${menuPkgDesktop[2]}")
-  opt+=("${menuPkgCustom[1]}" " ${pkgList##*/}")
-  if [ "$havePkgs" == 1 ]; then
+  if [ ! "$installDone" == 1 ]; then
+    opt+=("${menuPkgMinimal[1]}" " ${menuPkgMinimal[2]}")
+    opt+=("${menuPkgDesktop[1]}" " ${menuPkgDesktop[2]}")
+    opt+=("${menuPkgCustom[1]}" " ${pkgList##*/}")
     opt+=("" "")
     opt+=("${menuKernelSelect[1]}" "")
-  fi
-  if [ "$havePkgs" == 1 ] && [ "$haveKernel" == 1 ]; then
-    opt+=("" "")
-    opt+=("${menuInstallPkgs[1]}" "")
-  fi
-  if [ "$needConfig" == 1 ]; then
-    opt+=("" "")
+    if [ "$havePkgs" == 1 ] && [ "$haveKernel" == 1 ]; then
+      opt+=("" "")
+      opt+=("${menuInstallPkgs[1]}" "")
+    fi
+  else
     opt+=("${menuInstallDone[1]}" "")
   fi
 
@@ -640,15 +640,16 @@ installSelectMenu() {
           packages=()
           havePkgs=0
           haveKernel=0
-          needConfig=1
+          installDone=1
           nextItem="${menuInstallDone[1]}"
         fi
       ;;
       "${menuInstallDone[1]}")
+        needConfig=1
         return
       ;;
     esac
-    installSelectMenu "${nextItem}"
+    pkgSelectMenu "${nextItem}"
   fi
 
 }
@@ -1372,6 +1373,7 @@ postUnmount() {
 
   clear
   umount -R /mnt
+  haveMount=0
 
 }
 
@@ -1553,6 +1555,7 @@ else
 
   if preCheckNetwork; then
     prePacmanConf
+    checkMount
     installMenu
   else
     exit 1
