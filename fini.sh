@@ -9,6 +9,7 @@ DEFEDITOR="vim"
 
 runDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 pkgList="$runDir/packages.txt"
+getUrl="https://github.com/jeffmhubbard/fini/archive/master.tar.gz"
 
 installMenu() {
 
@@ -1401,6 +1402,15 @@ tuiComplete() {
 
 }
 
+getFini() {
+
+  cacheTo="fini.tar.gz"
+  if curl -sLo "$cacheTo" "$getUrl"; then
+    tar xfz "$cacheTo" --strip 1
+  fi
+
+}
+
 loadStrings() {
 
   appName="$(basename "${0}")"
@@ -1522,6 +1532,10 @@ while (( "$#" )); do
       if checkMount; then
         pkgStrap "${2}"
       fi
+    ;;
+    --fetch)
+      getFini
+      exit 0
     ;;
     --chroot)
       chroot=1
