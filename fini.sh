@@ -1404,7 +1404,7 @@ tuiComplete() {
 
 getFini() {
 
-  cacheTo="fini.tar.gz"
+  cacheTo="/tmp/fini.tgz"
   if curl -sLo "$cacheTo" "$getUrl"; then
     tar xfz "$cacheTo" --strip 1
   fi
@@ -1414,7 +1414,6 @@ getFini() {
 loadStrings() {
 
   appName="$(basename "${0}")"
-  appDesc="simple Arch Linux install script"
 
   strOpt="(OPT)"
   strReq="(REQ)"
@@ -1499,14 +1498,14 @@ loadStrings() {
 usage() {
 
 cat << EOF
+usage: ${appName} [options] [args]
 
-  ${appName} - $appDesc
-
-  Usage: ${appName} [-l <PATH>] [-m]
-
-  -h | --help        show help
-  -l | --pkg-list    custom package list
-  -m | --skip-mount  partitions are already mounted
+options:
+  -h, --help            show help
+  -l, --list FILE       load a custom package list
+  -m, --mounted         root fs is already mounted
+  -f, --fetch           fetch everything to current directory
+  --pacstrap FILE       pacstrap any package list
 
 EOF
 
@@ -1522,20 +1521,20 @@ while (( "$#" )); do
       usage
       exit 0
     ;;
-    -l | --pkg-list)
+    -f | --fetch)
+      getFini
+      exit 0
+    ;;
+    -l | --list)
       pkgList="$runDir/${2}"
     ;;
-    -m | --skip-mount)
+    -m | --mounted)
       checkMount
     ;;
     --pacstrap)
       if checkMount; then
         pkgStrap "${2}"
       fi
-    ;;
-    --fetch)
-      getFini
-      exit 0
     ;;
     --chroot)
       chroot=1
