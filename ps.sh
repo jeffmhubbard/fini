@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# A simple post-install script to install auracle and a list of packages 
+# ps
+# post-install script to install auracle and a list of packages
 # from AUR. It looks for './build.txt' or use -l to specify a file
 # The format is one package per line. Optional second field should be the
 # name of package it will replace
@@ -9,7 +10,6 @@
 # This is circumventing an intentional safeguard in pacman, don't use this
 
 appName="$(basename "${0}")"
-appDesc="install list of AUR packages"
 
 # script path
 runDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
@@ -49,6 +49,8 @@ main() {
     fi
     pkg="${fields[0]}"
 
+    echo -e "Procsessing '$pkg'..."
+
     if checkPkgExists "$pkg"; then
       continue
 
@@ -61,6 +63,7 @@ main() {
 
       buildPkg "$pkg"
     fi
+    echo
   done
 
 }
@@ -104,7 +107,7 @@ cloneAur() {
 # build package
 makePkg() {
 
-  cd "$1" ||exit
+  cd "$1" ||return
 
   if [ ! -f "PKGBUILD" ]; then
     echo "Could not find 'PKGBUILD' file in '$1'!"
@@ -114,7 +117,7 @@ makePkg() {
   makepkg -sric --noconfirm --needed 2>/dev/null
   [ $? == 14 ] && echo "Package '$1' was built, but failed to install"
 
-  cd "$runDir" ||exit
+  cd "$runDir" ||return
   
 }
 
@@ -132,7 +135,7 @@ readPkgList() {
 # check if package is currently installed
 checkPkgExists() {
 
-  pacman -Qs "^$1$" >/dev/null
+  pacman -Qi "$1" &>/dev/null
   return $?
 
 }
@@ -172,28 +175,28 @@ buildPkg() {
         echo "Unable to process '$pkgName': '$pkgId'"
         ;;
     esac
-  done < <(auracle buildorder "$1")
+  done < <(auracle buildorder "$target")
 
 }
 
 usage() {
 
 cat << EOF
+usage: ${appName} [options] [args]
 
-  $appName - $appDesc
-
-  Usage: $appName [-l <PATH>]
-
-  -h | --help        show help
-  -l | --list        custom package list
+options:
+  -h            show help
+  -l FILE       load a custom build list
+  -d PATH       use a custom build directory
 
 EOF
 
 }
 
-while getopts l:h ARGS; do
+while getopts l:d:h ARGS; do
   case "${ARGS}" in
-    l) buildList="$runDir/${OPTARG}";;
+    l) buildList="${OPTARG}";;
+    d) buildDir="${OPTARG}";;
     h|*) usage; exit 1;;
   esac
 done
@@ -203,4 +206,4 @@ main
 
 exit 0
 
-# vim: ft=bash ts=2 sw=0 et:
+# vim: ft=sh ts=2 sw=0 et:
