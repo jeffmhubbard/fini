@@ -42,7 +42,7 @@ main() {
       checkMount
 
       # main menu
-      installMenu
+      mainMenu
     else
 
       exit 1
@@ -51,10 +51,63 @@ main() {
 
 }
 
-installMenu() {
+# Check for internet connection
+preCheckNetwork() {
+
+  hasGateway() {
+
+    gateway=$(ip r | grep default | awk 'NR==1 {print $3}')
+    if ! ping -q -w 1 -c 1 "${gateway}" &> /dev/null; then
+      return 1
+    fi
+
+  }
+
+  hasInternet() {
+
+    if ! ping -c 1 -w 5 archlinux.org &>/dev/null; then 
+      return 1
+    fi
+
+  }
+
+  if ! hasGateway || ! hasInternet; then
+    if (whiptail \
+      --backtitle "${appName}" \
+      --title "ERROR" \
+      --msgbox "no internet connection" 0 0 \
+      3>&1 1>&2 2>&3)
+      then
+      exit 1
+    fi
+  fi
+
+}
+
+# Spruce up pacman for the install
+prePacmanConf() {
+
+  conf="/etc/pacman.conf"
+  sed -i "/Color/s/^#//" ${conf}
+  sed -i "/TotalDownload/s/^#//" ${conf}
+  sed -i "/CheckSpace/s/^#//" ${conf}
+
+}
+
+checkMount() {
+
+  if ! mount | grep " /mnt "; then
+    haveMount=0
+    return 1
+  fi
+  haveMount=1
+
+}
+
+mainMenu() {
 
   if [ "${1}" = "" ]; then
-    nextItem="."
+    nextItem="${menuSetupBoot[1]}"
   else
     nextItem=${1}
   fi
@@ -63,19 +116,19 @@ installMenu() {
   opt+=("${menuSetupKeys[1]}" " ${strOpt}")
   opt+=("${menuSetupFont[1]}" " ${strOpt}")
   opt+=("${menuSetupEdit[1]}" " ${strOpt}")
-  opt+=("${menuSetupBoot[1]}" " ${strReq}")
   opt+=("${menuSetupTime[1]}" " ${strRec}")
+  opt+=("${menuSetupBoot[1]}" " ${strReq}")
   if [ ! "${haveMount}" == 1 ]; then
     opt+=("${menuPartDisks[1]}" " ${strOpt}")
   fi
   opt+=("${menuPartAssign[1]}" " ${strReq}")
   if [ ! "${haveMount}" == 1 ]; then
     opt+=("${menuPartFormat[1]}" " ${strOpt}")
-    opt+=("${menuInstallMount[1]}" " ${strReq}")
+    opt+=("${menuPartMount[1]}" " ${strReq}")
   fi
   opt+=("${menuInstallMirror[1]}" " ${strRec}")
   opt+=("${menuInstallSync[1]}" " ${strOpt}")
-  opt+=("${menuSelectInstall[1]}" " ${strReq}")
+  opt+=("${menuInstallSelect[1]}" " ${strReq}")
   if [ "${needConfig}" == 1 ]; then
     opt+=("" "")
     opt+=("${menuConfSystem[1]}" " ${strReq}")
@@ -108,14 +161,14 @@ installMenu() {
       ;;
       "${menuSetupEdit[1]}")
         preSetEditor
-        nextItem="${menuSetupBoot[1]}"
-      ;;
-      "${menuSetupBoot[1]}")
-        preDetectBoot
         nextItem="${menuSetupTime[1]}"
       ;;
       "${menuSetupTime[1]}")
         preSyncTime
+        nextItem="${menuSetupBoot[1]}"
+      ;;
+      "${menuSetupBoot[1]}")
+        preDetectBoot
         if [ "${haveMount}" == 1 ]; then
           nextItem="${menuPartAssign[1]}"
         else
@@ -136,9 +189,9 @@ installMenu() {
       ;;
       "${menuPartFormat[1]}")
         prePartFormat
-        nextItem="${menuInstallMount[1]}"
+        nextItem="${menuPartMount[1]}"
       ;;
-      "${menuInstallMount[1]}")
+      "${menuPartMount[1]}")
         prePartMount
         nextItem="${menuInstallMirror[1]}"
       ;;
@@ -148,14 +201,14 @@ installMenu() {
       ;;
       "${menuInstallSync[1]}")
         installSyncDB
-        nextItem="${menuSelectInstall[1]}"
+        nextItem="${menuInstallSelect[1]}"
       ;;
-      "${menuSelectInstall[1]}")
+      "${menuInstallSelect[1]}")
         if [ "${haveMount}" == 1 ]; then
           pkgSelectMenu
           nextItem="${menuConfSystem[1]}"
         else
-          nextItem="${menuInstallMount[1]}"
+          nextItem="${menuPartMount[1]}"
         fi
       ;;
       "${menuConfSystem[1]}")
@@ -170,40 +223,7 @@ installMenu() {
         postReboot
       ;;
     esac
-    installMenu "${nextItem}"
-  fi
-
-}
-
-# Check for internet connection
-preCheckNetwork() {
-
-  if ! hasGateway || ! hasInternet; then
-    if (whiptail \
-      --backtitle "${appName}" \
-      --title "ERROR" \
-      --msgbox "no internet connection" 0 0 \
-      3>&1 1>&2 2>&3)
-      then
-      exit 1
-    fi
-  fi
-
-}
-
-hasGateway() {
-
-  gateway=$(ip r | grep default | awk 'NR==1 {print $3}')
-  if ! ping -q -w 1 -c 1 "${gateway}" &> /dev/null; then
-    return 1
-  fi
-
-}
-
-hasInternet() {
-
-  if ! ping -c 1 -w 5 archlinux.org &>/dev/null; then 
-    return 1
+    mainMenu "${nextItem}"
   fi
 
 }
@@ -315,7 +335,7 @@ prePartDisk() {
   if choice=$(whiptail \
     --backtitle "${appName}" \
     --title "${menuPartDisks[0]}" \
-    --menu "" 0 0 0 "${opt[@]}" \
+    --menu "${menuPartDisks[2]}" 0 0 0 "${opt[@]}" \
     --cancel-button "${btnDone}" \
     3>&1 1>&2 2>&3) && \
     [ -b "${choice}" ]
@@ -572,23 +592,13 @@ prePartMount() {
 
   if (whiptail \
     --backtitle "${appName}" \
-    --title "${menuInstallMount[0]}" \
+    --title "${menuPartMount[0]}" \
     --msgbox "${msg}" 0 0 \
     3>&1 1>&2 2>&3)
   then
 
     checkMount
   fi
-
-}
-
-# Spruce up pacman for the install
-prePacmanConf() {
-
-  conf="/etc/pacman.conf"
-  sed -i "/Color/s/^#//" ${conf}
-  sed -i "/TotalDownload/s/^#//" ${conf}
-  sed -i "/CheckSpace/s/^#//" ${conf}
 
 }
 
@@ -619,8 +629,8 @@ pkgSelectMenu() {
 
   opt=()
   if [ ! "$installDone" == 1 ]; then
+    opt+=("${menuPkgBase[1]}" " ${menuPkgBase[2]}")
     opt+=("${menuPkgMinimal[1]}" " ${menuPkgMinimal[2]}")
-    opt+=("${menuPkgDesktop[1]}" " ${menuPkgDesktop[2]}")
     opt+=("${menuPkgCustom[1]}" " ${pkgList##*/}")
     opt+=("" "")
     opt+=("${menuKernelSelect[1]}" "")
@@ -634,7 +644,7 @@ pkgSelectMenu() {
 
   if choice=$(whiptail \
     --backtitle "${appName}" \
-    --title "${menuSelectInstall[0]}" \
+    --title "${menuInstallSelect[0]}" \
     --menu "" 0 0 0 "${opt[@]}" \
     --default-item "${nextItem}" \
     --cancel-button "${btnDone}" \
@@ -642,14 +652,14 @@ pkgSelectMenu() {
     then
 
     case ${choice} in
-      "${menuPkgMinimal[1]}")
+      "${menuPkgBase[1]}")
         packages=("base")
         if [ "${#packages[@]}" -gt 0 ]; then
           havePkgs=1
           nextItem="${menuKernelSelect[1]}"
         fi
       ;;
-      "${menuPkgDesktop[1]}")
+      "${menuPkgMinimal[1]}")
         packages=("base" "base-devel" "vi" "sudo" \
           "xorg" "xorg-drivers" "xorg-apps" "xorg-xdm" \
           "i3-wm" "i3status" "i3lock" "xss-lock" \
@@ -1137,11 +1147,10 @@ installGrubMenu() {
       "${menuGrubBoot[1]}")
         installGrubBoot
         haveGrub=1
-        nextItem="${menuGrubBoot[1]}"
+        nextItem="${menuGrubDone[1]}"
       ;;
       "${menuGrubDone[1]}")
         return
-        nextItem="${menuGrubBoot[1]}"
       ;;
     esac
 
@@ -1374,16 +1383,6 @@ postReboot() {
  
 }
 
-checkMount() {
-
-  if ! mount | grep " /mnt "; then
-    haveMount=0
-    return 1
-  fi
-  haveMount=1
-
-}
-
 readCustomFile() {
 
   packages=()
@@ -1441,51 +1440,49 @@ loadStrings() {
   # Menu entries (title, menu, extra)
   menuMain=("Main Menu" "Install Arch Linux" "")
 
-  menuSetupKeys=("Keyboard Layout" "Set Keyboard Layout" "")
-  menuSetupFont=("Console Font" "Set Console Font" "")
-  menuSetupEdit=("Text Editor" "Set Text Editor" "")
+  menuSetupKeys=("Setup: Keyboard" "Set Keyboard Layout" "")
+  menuSetupFont=("Setup: Font" "Set Console Font" "")
+  menuSetupEdit=("Setup: Editor" "Set Text Editor" "")
+  menuSetupTime=("Setup: Sync Time" "Sync Time With NTP" "")
+  menuSetupBoot=("Setup: Boot" "Detect Boot Type" "")
 
-  menuSetupBoot=("Boot Type" "Detect Boot Type" "")
-  menuSetupTime=("Sync Time" "Sync Time With NTP" "")
+  menuPartDisks=("Partition: Device" "Edit Partition Tables" "Select device")
+  menuPartAssign=("Partition: Assign" "Assign Partitions" "Select mount point")
+  menuPartFormat=("Partition: Format" "Format Partitions" "Select filesystem")
+  menuPartMount=("Partition: Mount" "Mount Partitions" "Mount filesystems")
 
-  menuPartDisks=("Select Device" "Edit Partition Tables" "")
-  menuPartAssign=("Assign Partitions" "Assign Mount Points" "")
-  menuPartFormat=("Format Partitions" "Format New Partitions" "")
+  menuInstallMirror=("Install: Mirrors" "Edit Software Mirrors" "")
+  menuInstallSync=("Install: Sync DB" "Update Software Database" "")
+  menuInstallSelect=("Install: Packages" "Install Packages" "Select software and kernel to install")
 
-  menuInstallMirror=("Edit Mirrorlist" "Edit Software Mirrors" "")
-  menuInstallSync=("Update Pacman" "Update Software Database" "")
-  menuInstallMount=("Mount Partitions" "Mount New Partitions" "")
+  menuPkgBase=("Base" "Select Base" "Just 'base'")
+  menuPkgMinimal=("Desktop" "Select Desktop" "i3, urxvt, surf")
+  menuPkgCustom=("Custom" "Custom Set" "${pkgList}")
 
-  menuSelectInstall=("Install Packages" "Install Package Sets" "")
-  menuPkgMinimal=("Minimal" "Install Base System" "Just 'base'")
-  menuPkgDesktop=("Desktop" "Install Minimal Desktop" "i3, urxvt, surf")
-  menuPkgCustom=("Custom" "Load Package List" "")
-
-  menuKernelSelect=("Select Kernel" "Select Linux Kernel" "")
+  menuKernelSelect=("Install: Kernel" "Select Kernel" "")
   menuKernelLinux=("Vanilla" "Install Standard Kernel" "linux")
   menuKernelZen=("Zen" "Install Zen Kernel" "linux-zen")
   menuKernelHardened=("Hardended" "Install Hardened Kernel" "linux-hardened")
   menuKernelLTS=("LTS" "Install LTS Kernel" "linux-lts")
 
-  menuInstallPkgs=("Pacstrap" "Install Selected Software" "")
-  menuInstallDone=("Complete" "Installation Complete" "")
+  menuInstallPkgs=("Install: Pacstrap" "Install Selected Software" "")
+  menuInstallDone=("Install: Complete" "Installation Complete" "")
 
-  menuConfSystem=("Configure" "Configure New Install" "")
+  menuConfSystem=("Install: Configure" "Configure New Install" "")
 
-  menuConfFstab=("Generate fstab" "Generate Filesystem Table" "")
+  menuConfFstab=("Configure: Fstab" "Generate Filesystem Table" "")
+  menuConfTime=("Configure: Timezone" "Set System Time" "")
+  menuTimeRegion=("Configure: Region" "Select Region" "")
+  menuTimeCity=("Configure: City" "Select City" "")
+  menuTimeUtc=("Configure: Hardware Clock" "Confirm Hardware Clock" "Is hardware clock set to UTC?")
+  menuTimeSync=("Configure: Internet Time" "Confirm Internet Time" "Sync time with Internet?")
 
-  menuConfTime=("Timezone" "Set System Time" "")
-  menuTimeRegion=("Region" "Select Region" "")
-  menuTimeCity=("City" "Select City" "")
-  menuTimeUtc=("Hardware Clock" "Confirm Hardware Clock" "Is hardware clock set to UTC?")
-  menuTimeSync=("Internet Time" "Confirm Internet Time" "Sync time with Internet?")
-
-  menuConfLocale=("Localization" "Set System Locale" "")
-  menuConfKeymap=("Keyboard Layout" "Set Keyboard Layout" "")
-  menuConfFont=("Console Font" "Set Console Font" "")
-  menuConfHostname=("Hostname" "Set System Hostname" "")
-  menuConfDhcp=("DHCP" "Enable DHCP Client" "")
-  menuConfXdm=("XDM" "Enable Display Manager" "")
+  menuConfLocale=("Configure: Locale" "Set System Locale" "")
+  menuConfKeymap=("Configure: Keyboard" "Set Keyboard Layout" "")
+  menuConfFont=("Configure: Font" "Set Console Font" "")
+  menuConfHostname=("Configure: Hostname" "Set System Hostname" "")
+  menuConfDhcp=("Configure: DHCP" "Enable DHCP Client" "")
+  menuConfXdm=("Configure: XDM" "Enable Display Manager" "")
 
   menuConfBoot=("GRUB" "Install Bootloader" "")
   menuGrubInstall=("Install" "Install GRUB" "")
@@ -1505,7 +1502,6 @@ loadStrings() {
   menuSysReboot=("Reboot" "Reboot System" "")
 
   # Buttons
-  btnBack="Back"
   btnDone="Done"
   btnQuit="Quit"
 
