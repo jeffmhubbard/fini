@@ -1,19 +1,29 @@
 # fini
 
-simple Arch Linux install scripts
+simple Arch Linux install script
 
-###### Basic
-`curl -fsSL https://git.io/Je83b >fini.sh`
+Get install script
+`curl -sLo fini.sh git.io/Je83b`
 
-###### Full
-```
-pacman -Sy git
-git clone https://github.com/jeffmhubbard/fini
-cd fini
-```
+Get everything (to CWD)
+`sh fini.sh --fetch`
 
-#### Install
-`bash fini.sh`
+Install
+`sh fini.sh`
 
-#### Post Install
-`bash ps.sh  [-l FILE]`
+Install with custom package list
+`sh fini.sh -l file.txt`
+
+Install additional package list (while mounted)
+`sh fini.sh --pacstrap file.txt`
+
+# ps
+
+post-install AUR builder
+
+Install `auracle` and build from `build.txt`
+`sh ps.sh`
+
+Or
+`sh ps.sh -l file.txt`
+
