@@ -11,6 +11,46 @@ runDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 pkgList="$runDir/packages.txt"
 getUrl="https://github.com/jeffmhubbard/fini/archive/master.tar.gz"
 
+main() {
+
+  if [ "${chroot}" = "1" ]; then
+
+    case ${command} in
+      "settimeutc") chrootSetTimeUTC;;
+      "settimelocal") chrootSetTimeLocal;;
+      "enabletimesyncd") chrootEnableTimesync;;
+      "setlocale") chrootSetLocale;;
+      "enabledhcpcd") chrootEnableDHCP;;
+      "enablexdm") chrootEnableXDM;;
+      "grubinstall") chrootInstallGrub;;
+      "grubinstallbios") chrootInstallGrubBIOS "${args}";;
+      "grubinstallefi") chrootInstallGrubEFI "${args}";;
+      "useraddnew") chrootUserAdd "${args}";;
+      "userdelold") chrootUserDel "${args}";;
+      "userlistall") chrootUserList;;
+      "uservisudo") chrootUserSudo;;
+      "setrootpassword") chrootSetRootPswd;;
+    esac
+  else
+
+    if preCheckNetwork; then
+
+      # tweak pacman config
+      prePacmanConf
+
+      # detect if new root is mounted
+      checkMount
+
+      # main menu
+      installMenu
+    else
+
+      exit 1
+    fi
+  fi
+
+}
+
 installMenu() {
 
   if [ "${1}" = "" ]; then
@@ -254,7 +294,7 @@ preDetectBoot() {
 preSyncTime() {
 
   if timedatectl set-ntp true; then
-    result="Success"
+    result="Complete"
   else
     result="Fail"
   fi
@@ -451,7 +491,7 @@ formatSwap() {
   if ! choice=$(whiptail \
     --backtitle "${appName}" \
     --title "${menuPartFormat[0]}" \
-    --menu "\nSelect filesystem for ${2}" 0 0 0 "${opt[@]}" \
+    --menu "\nSelect filesystem for '${2}'" 0 0 0 "${opt[@]}" \
     3>&1 1>&2 2>&3)
     then
 
@@ -478,7 +518,7 @@ formatDevice() {
   if ! choice=$(whiptail \
     --backtitle "${appName}" \
     --title "${menuPartFormat[0]}" \
-    --menu "\nSelect filesystem for ${2}" 0 0 0 "${opt[@]}" \
+    --menu "\nSelect filesystem for '${2}'" 0 0 0 "${opt[@]}" \
     --default-item "ext4" \
     3>&1 1>&2 2>&3)
     then
@@ -722,7 +762,7 @@ configMenu() {
 
     case ${choice} in
       "${menuConfFstab[1]}")
-        postFstabMenu
+        postFstabGen
         nextItem="${menuConfTime[1]}"
       ;;
       "${menuConfTime[1]}")
@@ -782,41 +822,10 @@ execChroot() {
 
 }
 
-postFstabMenu() {
-
-  opt=()
-  opt+=("${menuFstabUuid[0]}" " ${menuFstabUuid[1]}")
-  opt+=("${menuFstabLabel[0]}" " ${menuFstabLabel[1]}")
-  opt+=("${menuFstabPartUuid[0]}" " ${menuFstabPartUuid[1]}")
-  opt+=("${menuFstabPartLabel[0]}" " ${menuFstabPartLabel[1]}")
-
-  if choice=$(whiptail \
-    --backtitle "${appName}" \
-    --title "${menuConfFstab[0]}" \
-    --menu "" 0 0 0 "${opt[@]}" \
-    --default-item "${menuFstabUuid[0]}" \
-    --cancel-button "${btnBack}" \
-    3>&1 1>&2 2>&3)
-    then
-
-    case ${choice} in
-      "UUID")
-        clear
-        genfstab -U -p /mnt > /mnt/etc/fstab
-      ;;
-      "LABEL")
-        clear
-        genfstab -L -p /mnt > /mnt/etc/fstab
-      ;;
-      "PARTUUID")
-        clear
-        genfstab -t PARTUUID -p /mnt > /mnt/etc/fstab
-      ;;
-      "PARTLABEL")
-        clear
-        genfstab -t PARTLABEL -p /mnt > /mnt/etc/fstab
-      ;;
-    esac
+postFstabGen() {
+  
+  if genfstab -U -p /mnt > /mnt/etc/fstab; then
+    winComplete "${menuConfFstab[0]}" "Complete"
   fi
   
 }
@@ -1091,10 +1100,14 @@ installGrubMenu() {
     nextItem=${1}
   fi
 
-  opt=()
-  opt+=("${menuGrubInstall[1]}" "")
-  opt+=("${menuGrubEdit[1]}" " ${strOpt}")
-  opt+=("${menuGrubBoot[1]}" " ${strReq}")
+  local opt=()
+  if [ ! "${haveGrub}" == 1 ]; then
+    opt+=("${menuGrubInstall[1]}" "")
+    opt+=("${menuGrubEdit[1]}" " ${strOpt}")
+    opt+=("${menuGrubBoot[1]}" " ${strReq}")
+  else
+    opt+=("${menuGrubDone[1]}" "")
+  fi
 
   if choice=$(whiptail \
     --backtitle "${appName}" \
@@ -1123,9 +1136,15 @@ installGrubMenu() {
       ;;
       "${menuGrubBoot[1]}")
         installGrubBoot
+        haveGrub=1
+        nextItem="${menuGrubBoot[1]}"
+      ;;
+      "${menuGrubDone[1]}")
+        return
         nextItem="${menuGrubBoot[1]}"
       ;;
     esac
+
     installGrubMenu "${nextItem}"
   fi
 
@@ -1429,7 +1448,7 @@ loadStrings() {
   menuSetupBoot=("Boot Type" "Detect Boot Type" "")
   menuSetupTime=("Sync Time" "Sync Time With NTP" "")
 
-  menuPartDisks=("Partition Disks" "Edit Partition Tables" "")
+  menuPartDisks=("Select Device" "Edit Partition Tables" "")
   menuPartAssign=("Assign Partitions" "Assign Mount Points" "")
   menuPartFormat=("Format Partitions" "Format New Partitions" "")
 
@@ -1454,10 +1473,6 @@ loadStrings() {
   menuConfSystem=("Configure" "Configure New Install" "")
 
   menuConfFstab=("Generate fstab" "Generate Filesystem Table" "")
-  menuFstabUuid=("UUID" "genfstab -U" "")
-  menuFstabLabel=("LABEL" "genfstab -L" "")
-  menuFstabPartUuid=("PARTUUID" "genfstab -t PARTUUID" "")
-  menuFstabPartLabel=("PARTLABEL" "genfstab -t PARTLABEL" "")
 
   menuConfTime=("Timezone" "Set System Time" "")
   menuTimeRegion=("Region" "Select Region" "")
@@ -1473,9 +1488,10 @@ loadStrings() {
   menuConfXdm=("XDM" "Enable Display Manager" "")
 
   menuConfBoot=("GRUB" "Install Bootloader" "")
-  menuGrubInstall=("Install" "Install and Generate Config" "")
+  menuGrubInstall=("Install" "Install GRUB" "")
   menuGrubEdit=("Config" "Edit GRUB Config" "")
   menuGrubBoot=("Bootloader" "Install Bootloader" "")
+  menuGrubDone=("Complete" "Installation Complete" "")
 
   menuConfUser=("Manage Users" "Manage User Accounts" "")
   menuUserAdd=("Add" "Add New User" "")
@@ -1493,6 +1509,35 @@ loadStrings() {
   btnDone="Done"
   btnQuit="Quit"
 
+}
+
+parseArgs() {
+  while (( "$#" )); do
+    case ${1} in
+      -h | --help)
+        usage
+        exit 0
+      ;;
+      -f | --fetch)
+        getFini
+        exit 0
+      ;;
+      -l | --list)
+        pkgList="${2}"
+      ;;
+      --pacstrap)
+        if checkMount; then
+          pkgStrap "${2}"
+        fi
+      ;;
+      --chroot)
+        chroot=1
+        command=${2}
+        args=${3}
+      ;;
+    esac
+    shift
+  done
 }
 
 usage() {
@@ -1514,63 +1559,9 @@ EOF
 
 loadStrings
 
-while (( "$#" )); do
-  case ${1} in
-    -h | --help)
-      usage
-      exit 0
-    ;;
-    -f | --fetch)
-      getFini
-      exit 0
-    ;;
-    -l | --list)
-      pkgList="${2}"
-    ;;
-    --pacstrap)
-      if checkMount; then
-        pkgStrap "${2}"
-      fi
-    ;;
-    --chroot)
-      chroot=1
-      command=${2}
-      args=${3}
-    ;;
-  esac
-  shift
-done
+parseArgs "$@"
 
-if [ "${chroot}" = "1" ]; then
-
-  case ${command} in
-    "settimeutc") chrootSetTimeUTC;;
-    "settimelocal") chrootSetTimeLocal;;
-    "enabletimesyncd") chrootEnableTimesync;;
-    "setlocale") chrootSetLocale;;
-    "enabledhcpcd") chrootEnableDHCP;;
-    "enablexdm") chrootEnableXDM;;
-    "grubinstall") chrootInstallGrub;;
-    "grubinstallbios") chrootInstallGrubBIOS "${args}";;
-    "grubinstallefi") chrootInstallGrubEFI "${args}";;
-    "useraddnew") chrootUserAdd "${args}";;
-    "userdelold") chrootUserDel "${args}";;
-    "userlistall") chrootUserList;;
-    "uservisudo") chrootUserSudo;;
-    "setrootpassword") chrootSetRootPswd;;
-  esac
-
-else
-
-  if preCheckNetwork; then
-    prePacmanConf
-    checkMount
-    installMenu
-  else
-    exit 1
-  fi
-
-fi
+main
 
 exit 0
 
