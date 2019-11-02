@@ -1,3 +1,4 @@
+dunst-git dunst
 gcalcli
 i3ipc-glib-git
 i3lock-color-git i3lock

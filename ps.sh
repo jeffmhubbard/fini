@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# ps
+# ps.sh
+
 # post-install script to install auracle and a list of packages
 # from AUR. It looks for './build.txt' or use -l to specify a file
 # The format is one package per line. Optional second field should be the
