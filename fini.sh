@@ -655,36 +655,6 @@ pkgSelectMenu() {
 
 }
 
-readCustomFile() {
-
-  packages=()
-  while IFS= read -r line
-  do
-    packages+=("${line}")
-  done < "${1}"
-
-}
-
-pkgStrap() {
-
-  if readCustomFile "${1}"; then
-    if pacstrap /mnt --needed "${packages[@]}"; then
-      needConfig=1
-    fi
-  fi
-
-}
-
-checkMount() {
-
-  if ! mount | grep " /mnt "; then
-    haveMount=0
-    return 1
-  fi
-  haveMount=1
-
-}
-
 kernelSelectMenu() {
 
   opt=()
@@ -1385,6 +1355,45 @@ postReboot() {
  
 }
 
+checkMount() {
+
+  if ! mount | grep " /mnt "; then
+    haveMount=0
+    return 1
+  fi
+  haveMount=1
+
+}
+
+readCustomFile() {
+
+  packages=()
+  while IFS= read -r line
+  do
+    packages+=("${line}")
+  done < "${1}"
+
+}
+
+pkgStrap() {
+
+  if readCustomFile "${1}"; then
+    if pacstrap /mnt --needed "${packages[@]}"; then
+      needConfig=1
+    fi
+  fi
+
+}
+
+getFini() {
+
+  cacheTo="/tmp/fini.tgz"
+  if curl -sLo "$cacheTo" "$getUrl"; then
+    tar xfz "$cacheTo" --strip 1
+  fi
+
+}
+
 winComplete() {
 
   whiptail \
@@ -1399,15 +1408,6 @@ tuiComplete() {
 
   [[ -n "$*" ]] && echo "$*"
   read -n1 -r -p "Press any key to continue..."
-
-}
-
-getFini() {
-
-  cacheTo="/tmp/fini.tgz"
-  if curl -sLo "$cacheTo" "$getUrl"; then
-    tar xfz "$cacheTo" --strip 1
-  fi
 
 }
 
@@ -1503,7 +1503,6 @@ usage: ${appName} [options] [args]
 options:
   -h, --help            show help
   -l, --list FILE       load a custom package list
-  -m, --mounted         root fs is already mounted
   -f, --fetch           fetch everything to current directory
   --pacstrap FILE       pacstrap any package list
 
@@ -1526,10 +1525,7 @@ while (( "$#" )); do
       exit 0
     ;;
     -l | --list)
-      pkgList="$runDir/${2}"
-    ;;
-    -m | --mounted)
-      checkMount
+      pkgList="${2}"
     ;;
     --pacstrap)
       if checkMount; then
