@@ -33,13 +33,16 @@ main() {
     esac
   else
 
-    if preCheckNetwork; then
-
-      # tweak pacman config
-      prePacmanConf
+    if checkNetwork; then
 
       # detect if new root is mounted
       checkMount
+
+      # sync time with ntp
+      syncTime
+
+      # tweak pacman config
+      pacmanConf
 
       # main menu
       mainMenu
@@ -52,7 +55,7 @@ main() {
 }
 
 # Check for internet connection
-preCheckNetwork() {
+checkNetwork() {
 
   hasGateway() {
 
@@ -85,7 +88,7 @@ preCheckNetwork() {
 }
 
 # Spruce up pacman for the install
-prePacmanConf() {
+pacmanConf() {
 
   conf="/etc/pacman.conf"
   sed -i "/Color/s/^#//" ${conf}
@@ -104,6 +107,15 @@ checkMount() {
 
 }
 
+# Sync time
+syncTime() {
+
+  if ! timedatectl set-ntp true; then
+    winComplete "Unable to sync NTP"
+  fi
+
+}
+
 mainMenu() {
 
   if [ "${1}" = "" ]; then
@@ -116,7 +128,6 @@ mainMenu() {
   opt+=("${menuSetupKeys[1]}" " ${strOpt}")
   opt+=("${menuSetupFont[1]}" " ${strOpt}")
   opt+=("${menuSetupEdit[1]}" " ${strOpt}")
-  opt+=("${menuSetupTime[1]}" " ${strRec}")
   opt+=("${menuSetupBoot[1]}" " ${strReq}")
   if [ ! "${haveMount}" == 1 ]; then
     opt+=("${menuPartDisks[1]}" " ${strOpt}")
@@ -161,10 +172,6 @@ mainMenu() {
       ;;
       "${menuSetupEdit[1]}")
         preSetEditor
-        nextItem="${menuSetupTime[1]}"
-      ;;
-      "${menuSetupTime[1]}")
-        preSyncTime
         nextItem="${menuSetupBoot[1]}"
       ;;
       "${menuSetupBoot[1]}")
@@ -310,19 +317,6 @@ preDetectBoot() {
 
 }
 
-# Sync time
-preSyncTime() {
-
-  if timedatectl set-ntp true; then
-    result="Complete"
-  else
-    result="Fail"
-  fi
-
-  winComplete "${menuSetupTime[0]}" "${result}"
-
-}
-
 # Partition disks
 prePartDisk() {
 
@@ -335,7 +329,7 @@ prePartDisk() {
   if choice=$(whiptail \
     --backtitle "${appName}" \
     --title "${menuPartDisks[0]}" \
-    --menu "${menuPartDisks[2]}" 0 0 0 "${opt[@]}" \
+    --menu "\n${menuPartDisks[2]}" 0 0 0 "${opt[@]}" \
     --cancel-button "${btnDone}" \
     3>&1 1>&2 2>&3) && \
     [ -b "${choice}" ]
@@ -361,7 +355,7 @@ prePartAssign() {
   if bootDev=$(whiptail \
     --backtitle "${appName}" \
     --title "${menuPartAssign[0]}" \
-    --menu "\nChoose 'boot' partition" 0 0 0 "NONE" "" "${opt[@]}" \
+    --menu "\nChoose '/boot' partition" 0 0 0 "NONE" "" "${opt[@]}" \
     3>&1 1>&2 2>&3)
     then
 
@@ -375,7 +369,7 @@ prePartAssign() {
   if swapDev=$(whiptail \
     --backtitle "${appName}" \
     --title "${menuPartAssign[0]}" \
-    --menu "\nChoose 'swap' partition" 0 0 0 "NONE" "" "${opt[@]}" \
+    --menu "\nChoose '[SWAP]' partition" 0 0 0 "NONE" "" "${opt[@]}" \
     3>&1 1>&2 2>&3)
     then
 
@@ -389,7 +383,7 @@ prePartAssign() {
   if ! rootDev=$(whiptail \
     --backtitle "${appName}" \
     --title "${menuPartAssign[0]}" \
-    --menu "\nChoose 'root' partition" 0 0 0 "${opt[@]}" \
+    --menu "\nChoose '/' partition" 0 0 0 "${opt[@]}" \
     3>&1 1>&2 2>&3)
     then
 
@@ -399,7 +393,7 @@ prePartAssign() {
   if homeDev=$(whiptail \
     --backtitle "${appName}" \
     --title "${menuPartAssign[0]}" \
-    --menu "\nChoose 'home' partition" 0 0 0 "NONE" "" "${opt[@]}" \
+    --menu "\nChoose '/home' partition" 0 0 0 "NONE" "" "${opt[@]}" \
     3>&1 1>&2 2>&3)
     then
 
@@ -411,17 +405,17 @@ prePartAssign() {
   fi
 
   msg="Does this look correct?\n\n"
+  if [ -n "${rootDev}" ]; then
+    msg="${msg}${rootDev} to /\n"
+  fi
   if [ -n "${bootDev}" ]; then
-    msg="${msg}${bootDev##*/}: /boot (${bootType})\n"
+    msg="${msg}${bootDev} to /boot (${bootType})\n"
   fi
   if [ -n "${swapDev}" ]; then
-    msg="${msg}${swapDev##*/}: swap\n"
-  fi
-  if [ -n "${rootDev}" ]; then
-    msg="${msg}${rootDev##*/}: / (root)\n"
+    msg="${msg}${swapDev} to [SWAP]\n"
   fi
   if [ -n "${homeDev}" ]; then
-    msg="${msg}${homeDev##*/}: /home\n"
+    msg="${msg}${homeDev} to /home\n"
   fi
 
   if ! (whiptail \
@@ -506,7 +500,7 @@ formatBoot() {
 formatSwap() {
 
   opt=()
-  opt+=("swap" "")
+  opt+=("[SWAP]" "")
 
   if ! choice=$(whiptail \
     --backtitle "${appName}" \
@@ -520,7 +514,7 @@ formatSwap() {
 
   clear
   case ${choice} in
-    swap)
+    [SWAP])
       mkswap ${swapDev}
     ;;
   esac
@@ -571,23 +565,23 @@ prePartMount() {
   msg="Mounted partitions\n\n"
 
   mount "${rootDev}" /mnt
-  msg=${msg}"${rootDev##*/}: / (root)\n"
+  msg=${msg}"${rootDev} to /\n"
 
   mkdir /mnt/{boot,home} 2>/dev/null
 
   if [ ! "${bootDev}" = "" ]; then
     mount ${bootDev} /mnt/boot
-    msg=${msg}"${bootDev##*/}: /boot (${bootType})\n"
+    msg=${msg}"${bootDev} to /boot (${bootType})\n"
   fi
 
   if [ ! "${swapDev}" = "" ]; then
     swapon ${swapDev}
-    msg=${msg}"${swapDev##*/}: swap\n"
+    msg=${msg}"${swapDev} to [SWAP]\n"
   fi
 
   if [ ! "${homeDev}" = "" ]; then
     mount ${homeDev} /mnt/home
-    msg=${msg}"${homeDev##*/}: /home\n"
+    msg=${msg}"${homeDev} to /home\n"
   fi
 
   if (whiptail \
@@ -835,7 +829,7 @@ execChroot() {
 postFstabGen() {
   
   if genfstab -U -p /mnt > /mnt/etc/fstab; then
-    winComplete "${menuConfFstab[0]}" "Complete"
+    winComplete "${menuConfFstab[0]}" "${menuConfFstab[2]}"
   fi
   
 }
@@ -1087,9 +1081,9 @@ chmod +x "${INIT}"
 
 XRES="/mnt/etc/skel/.Xresources"
 cat >"${XRES}" <<EOF
-*background: black
-*foreground: gray
-*font: xft:DejaVu Sans Mono:size=9
+URxvt*background: black
+URxvt*foreground: gray
+URxvt*font: xft:DejaVu Sans Mono:size=9
 EOF
 
 }
@@ -1114,7 +1108,7 @@ installGrubMenu() {
   if [ ! "${haveGrub}" == 1 ]; then
     opt+=("${menuGrubInstall[1]}" "")
     opt+=("${menuGrubEdit[1]}" " ${strOpt}")
-    opt+=("${menuGrubBoot[1]}" " ${strReq}")
+    opt+=("${menuConfBoot[1]}" " ${strReq}")
   else
     opt+=("${menuGrubDone[1]}" "")
   fi
@@ -1131,7 +1125,7 @@ installGrubMenu() {
     case ${choice} in
       "${menuGrubInstall[1]}")
         installGrub
-        nextItem="${menuGrubBoot[1]}"
+        nextItem="${menuConfBoot[1]}"
       ;;
       "${menuGrubEdit[1]}")
         ${EDITOR} /mnt/etc/default/grub
@@ -1142,9 +1136,9 @@ installGrubMenu() {
           clear
           execChroot grubinstall
         fi
-        nextItem="${menuGrubBoot[1]}"
+        nextItem="${menuConfBoot[1]}"
       ;;
-      "${menuGrubBoot[1]}")
+      "${menuConfBoot[1]}")
         installGrubBoot
         haveGrub=1
         nextItem="${menuGrubDone[1]}"
@@ -1191,7 +1185,7 @@ installGrubBoot() {
 
   if choice=$(whiptail \
     --backtitle "${appName}" \
-    --title "${menuGrubBoot[0]}" \
+    --title "${menuConfBoot[0]}" \
     --menu "" 0 0 0 "${opt[@]}" \
     --default-item "${bootDev}" \
     3>&1 1>&2 2>&3)
@@ -1343,9 +1337,8 @@ postUserList() {
 
 chrootUserList() {
 
-  echo -e "Users:\n"
+  echo "Users:"
   awk -F: '{if ($3 >= 1000 && $3 <= 5000) { print $1 } }' /etc/passwd
-  echo
   tuiComplete
 
 }
@@ -1443,7 +1436,6 @@ loadStrings() {
   menuSetupKeys=("Setup: Keyboard" "Set Keyboard Layout" "")
   menuSetupFont=("Setup: Font" "Set Console Font" "")
   menuSetupEdit=("Setup: Editor" "Set Text Editor" "")
-  menuSetupTime=("Setup: Sync Time" "Sync Time With NTP" "")
   menuSetupBoot=("Setup: Boot" "Detect Boot Type" "")
 
   menuPartDisks=("Partition: Device" "Edit Partition Tables" "Select device")
@@ -1465,12 +1457,12 @@ loadStrings() {
   menuKernelHardened=("Hardended" "Install Hardened Kernel" "linux-hardened")
   menuKernelLTS=("LTS" "Install LTS Kernel" "linux-lts")
 
-  menuInstallPkgs=("Install: Pacstrap" "Install Selected Software" "")
+  menuInstallPkgs=("Install: Pacstrap" "Install Software" "")
   menuInstallDone=("Install: Complete" "Installation Complete" "")
 
   menuConfSystem=("Install: Configure" "Configure New Install" "")
 
-  menuConfFstab=("Configure: Fstab" "Generate Filesystem Table" "")
+  menuConfFstab=("Configure: Fstab" "Generate Filesystem Table" "Fstab generated...")
   menuConfTime=("Configure: Timezone" "Set System Time" "")
   menuTimeRegion=("Configure: Region" "Select Region" "")
   menuTimeCity=("Configure: City" "Select City" "")
@@ -1484,11 +1476,10 @@ loadStrings() {
   menuConfDhcp=("Configure: DHCP" "Enable DHCP Client" "")
   menuConfXdm=("Configure: XDM" "Enable Display Manager" "")
 
-  menuConfBoot=("GRUB" "Install Bootloader" "")
-  menuGrubInstall=("Install" "Install GRUB" "")
-  menuGrubEdit=("Config" "Edit GRUB Config" "")
-  menuGrubBoot=("Bootloader" "Install Bootloader" "")
-  menuGrubDone=("Complete" "Installation Complete" "")
+  menuConfBoot=("GRUB: Bootloader" "Install Bootloader" "")
+  menuGrubInstall=("GRUB: Install" "Install GRUB" "")
+  menuGrubEdit=("GRUB: Config" "Edit GRUB Config" "")
+  menuGrubDone=("GRUB: Install" "Installation Complete" "")
 
   menuConfUser=("Manage Users" "Manage User Accounts" "")
   menuUserAdd=("Add" "Add New User" "")
