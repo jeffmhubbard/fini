@@ -352,6 +352,16 @@ prePartAssign() {
     fi
   done
 
+  if ! rootDev=$(whiptail \
+    --backtitle "${appName}" \
+    --title "${menuPartAssign[0]}" \
+    --menu "\nChoose '/' partition" 0 0 0 "${opt[@]}" \
+    3>&1 1>&2 2>&3)
+    then
+
+    return 1
+  fi
+
   if bootDev=$(whiptail \
     --backtitle "${appName}" \
     --title "${menuPartAssign[0]}" \
@@ -369,7 +379,7 @@ prePartAssign() {
   if swapDev=$(whiptail \
     --backtitle "${appName}" \
     --title "${menuPartAssign[0]}" \
-    --menu "\nChoose '[SWAP]' partition" 0 0 0 "NONE" "" "${opt[@]}" \
+    --menu "\nChoose SWAP partition" 0 0 0 "NONE" "" "${opt[@]}" \
     3>&1 1>&2 2>&3)
     then
 
@@ -377,16 +387,6 @@ prePartAssign() {
       swapDev=
     fi
   else
-    return 1
-  fi
-
-  if ! rootDev=$(whiptail \
-    --backtitle "${appName}" \
-    --title "${menuPartAssign[0]}" \
-    --menu "\nChoose '/' partition" 0 0 0 "${opt[@]}" \
-    3>&1 1>&2 2>&3)
-    then
-
     return 1
   fi
 
@@ -409,10 +409,10 @@ prePartAssign() {
     msg="${msg}${rootDev} to /\n"
   fi
   if [ -n "${bootDev}" ]; then
-    msg="${msg}${bootDev} to /boot (${bootType})\n"
+    msg="${msg}${bootDev} to /boot\n"
   fi
   if [ -n "${swapDev}" ]; then
-    msg="${msg}${swapDev} to [SWAP]\n"
+    msg="${msg}${swapDev} to SWAP\n"
   fi
   if [ -n "${homeDev}" ]; then
     msg="${msg}${homeDev} to /home\n"
@@ -500,7 +500,7 @@ formatBoot() {
 formatSwap() {
 
   opt=()
-  opt+=("[SWAP]" "")
+  opt+=("SWAP" "")
 
   if ! choice=$(whiptail \
     --backtitle "${appName}" \
@@ -514,7 +514,7 @@ formatSwap() {
 
   clear
   case ${choice} in
-    [SWAP])
+    SWAP)
       mkswap ${swapDev}
     ;;
   esac
@@ -576,7 +576,7 @@ prePartMount() {
 
   if [ ! "${swapDev}" = "" ]; then
     swapon ${swapDev}
-    msg=${msg}"${swapDev} to [SWAP]\n"
+    msg=${msg}"${swapDev} to SWAP\n"
   fi
 
   if [ ! "${homeDev}" = "" ]; then
@@ -1186,7 +1186,7 @@ installGrubBoot() {
   if choice=$(whiptail \
     --backtitle "${appName}" \
     --title "${menuConfBoot[0]}" \
-    --menu "" 0 0 0 "${opt[@]}" \
+    --menu "${menuConfBoot[2]}" 0 0 0 "${opt[@]}" \
     --default-item "${bootDev}" \
     3>&1 1>&2 2>&3)
   then
@@ -1476,7 +1476,7 @@ loadStrings() {
   menuConfDhcp=("Configure: DHCP" "Enable DHCP Client" "")
   menuConfXdm=("Configure: XDM" "Enable Display Manager" "")
 
-  menuConfBoot=("GRUB: Bootloader" "Install Bootloader" "")
+  menuConfBoot=("GRUB: Bootloader" "Install Bootloader" "Select device")
   menuGrubInstall=("GRUB: Install" "Install GRUB" "")
   menuGrubEdit=("GRUB: Config" "Edit GRUB Config" "")
   menuGrubDone=("GRUB: Install" "Installation Complete" "")
