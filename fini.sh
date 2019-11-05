@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 
-# Some defaults
-DEFKEYMAP="us"
-DEFLOCALE="en_US"
-DEFVCFONT="default8x16"
-DEFTIMZON="America/Chicago"
-DEFEDITOR="vim"
+# fini.sh
+# a simple menu-driven Arch Linux install script
+
+# EDIT DEFAULTS
+DEFKEYMAP="us"              # KEYBOARD LAYOUT
+DEFLOCALE="en_US"           # LOCALE
+DEFVCFONT="default8x16"     # CONSOLE FONT
+DEFTIMZON="America/Chicago" # TIMEZONE CITY\REGION
+DEFEDITOR="vim"             # TEXT EDITOR
 
 runDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 pkgList="$runDir/packages.txt"
@@ -379,7 +382,7 @@ prePartAssign() {
   if swapDev=$(whiptail \
     --backtitle "${appName}" \
     --title "${menuPartAssign[0]}" \
-    --menu "\nChoose SWAP partition" 0 0 0 "NONE" "" "${opt[@]}" \
+    --menu "\nChoose 'SWAP' partition" 0 0 0 "NONE" "" "${opt[@]}" \
     3>&1 1>&2 2>&3)
     then
 
@@ -420,7 +423,7 @@ prePartAssign() {
 
   if ! (whiptail \
     --backtitle "${appName}" \
-    --title "Confirm Mountpoints" \
+    --title "${menuPartAssign[0]}" \
     --yesno "${msg}" 0 0 \
     3>&1 1>&2 2>&3)
     then
@@ -656,7 +659,7 @@ pkgSelectMenu() {
       "${menuPkgMinimal[1]}")
         packages=("base" "base-devel" "vi" "sudo" \
           "xorg" "xorg-drivers" "xorg-apps" "xorg-xdm" \
-          "i3-wm" "i3status" "i3lock" "xss-lock" \
+          "i3-wm" "i3status" "i3lock-color" "xss-lock" \
           "ttf-dejavu" "dmenu" "surf" "rxvt-unicode" \
           "zsh" "tmux" "vim" "git" "openssh" \
           "man-db" "man-pages")
@@ -1272,6 +1275,9 @@ postUserMenu() {
       "${menuUserSudo[1]}")
         postUserSudo
       ;;
+      "${menuUserFini[1]}")
+        postUserFini
+      ;;
     esac
     postUserMenu
   fi
@@ -1347,7 +1353,7 @@ chrootUserList() {
 postUserSudo() {
 
   clear
-  pacstrap /mnt --needed sudo
+  pacstrap /mnt --needed vi sudo
   execChroot uservisudo
 
 }
@@ -1356,6 +1362,24 @@ chrootUserSudo() {
 
   if EDITOR=${DEFEDITOR} visudo; then
     return
+  fi
+
+}
+
+# Give $user fini
+postUserFini() {
+
+  opt=("$(awk -F: '{if ($3 >= 1000 && $3 <= 5000) { print $1 } }' /etc/passwd)")
+
+  if user=$(whiptail \
+    --backtitle "${appName}" \
+    --title "${menuUserFini[0]}" \
+    --menu "${menuUserFini[2]}" 0 0 0 "${opt[@]}" \
+    --cancel-button "${btnDone}" \
+    3>&1 1>&2 2>&3)
+    then
+
+    giveFini "$user"
   fi
 
 }
@@ -1405,6 +1429,17 @@ getFini() {
 
 }
 
+giveFini() {
+
+  local user=${1}
+  local src="/tmp/fini.tgz"
+  local dest="/home/$user"
+  if [ -f "$src" ] && [ -d "$dest" ]; then
+    install -C -m 755 -o "$user" -g "$user" "$src" "$dest"
+  fi
+
+}
+
 winComplete() {
 
   whiptail \
@@ -1449,7 +1484,7 @@ loadStrings() {
 
   menuPkgBase=("Base" "Select Base" "Just 'base'")
   menuPkgMinimal=("Desktop" "Select Desktop" "i3, urxvt, surf")
-  menuPkgCustom=("Custom" "Custom Set" "${pkgList}")
+  menuPkgCustom=("Custom" "Select Custom" "${pkgList}")
 
   menuKernelSelect=("Install: Kernel" "Select Kernel" "")
   menuKernelLinux=("Vanilla" "Install Standard Kernel" "linux")
@@ -1486,6 +1521,7 @@ loadStrings() {
   menuUserDel=("Delete" "Delete Existing User" "")
   menuUserList=("List" "List User Accounts" "")
   menuUserSudo=("Privileges" "Edit Sudoers File" "")
+  menuUserFini=("Fini" "Give User Fini" "")
   
   menuConfRoot=("Admin Password" "Set Root Password" "")
 
@@ -1499,6 +1535,7 @@ loadStrings() {
 }
 
 parseArgs() {
+
   while (( "$#" )); do
     case ${1} in
       -h | --help)
@@ -1525,6 +1562,7 @@ parseArgs() {
     esac
     shift
   done
+
 }
 
 usage() {
