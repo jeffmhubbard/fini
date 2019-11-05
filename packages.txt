@@ -1,5 +1,6 @@
 base
 base-devel
+autopep8
 bash-completion
 cmake
 compton
@@ -7,9 +8,11 @@ ctags
 curl
 dhcpcd
 dunst
+eslint
 fd
 feh
 ffmpeg
+flake8
 fontconfig
 fzf
 git
@@ -44,6 +47,9 @@ pavucontrol
 polkit-gnome
 pulseaudio-alsa
 pwgen
+python-black
+python-isort
+python-pyflakes
 qt5-styleplugins
 qutebrowser
 ranger
@@ -70,6 +76,7 @@ xorg-drivers
 xorg-server
 xorg-xdm
 xss-lock
+yapf
 zathura
 zathura-pdf-mupdf
 zip
