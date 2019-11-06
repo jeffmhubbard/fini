@@ -1369,7 +1369,11 @@ chrootUserSudo() {
 # Give $user fini
 postUserFini() {
 
-  opt=("$(awk -F: '{if ($3 >= 1000 && $3 <= 5000) { print $1 } }' /etc/passwd)")
+  users=($(awk -F: '{if ($3 >= 1000 && $3 <= 5000) { print $1 } }' /mnt/etc/passwd))
+  opt=()
+  for user in "${users[@]}"; do
+    opt+=("${user}" "")
+  done
 
   if user=$(whiptail \
     --backtitle "${appName}" \
@@ -1424,6 +1428,7 @@ getFini() {
 
   cacheTo="/tmp/fini.tgz"
   if curl -sLo "$cacheTo" "$getUrl"; then
+    haveTar=1
     tar xfz "$cacheTo" --strip 1
   fi
 
@@ -1432,10 +1437,9 @@ getFini() {
 giveFini() {
 
   local user=${1}
-  local src="/tmp/fini.tgz"
   local dest="/home/$user"
-  if [ -f "$src" ] && [ -d "$dest" ]; then
-    install -C -m 755 -o "$user" -g "$user" "$src" "$dest"
+  if [ $haveTar == 1 ] && [ -d "$dest" ]; then
+    install -C -m 755 -o "$user" -g "$user" "$cacheTo" "$dest"
   fi
 
 }
