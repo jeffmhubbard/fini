@@ -7,8 +7,9 @@
 DEFKEYMAP="us"              # KEYBOARD LAYOUT
 DEFLOCALE="en_US"           # LOCALE
 DEFVCFONT="default8x16"     # CONSOLE FONT
-DEFTIMZON="America/Chicago" # TIMEZONE CITY\REGION
+DEFTIMZON="America/Chicago" # TIMEZONE REGION/CITY
 DEFEDITOR="vim"             # TEXT EDITOR
+
 
 runDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 pkgList="$runDir/packages.txt"
@@ -1251,6 +1252,7 @@ postUserMenu() {
   opt+=("${menuUserDel[1]}" " ${menuUserDel[2]}")
   opt+=("${menuUserList[1]}" " ${menuUserList[2]}")
   opt+=("${menuUserSudo[1]}" " ${menuUserSudo[2]}")
+  opt+=("${menuUserFini[1]}" " ${menuUserFini[2]}")
 
 
   if choice=$(whiptail \
