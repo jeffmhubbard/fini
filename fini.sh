@@ -33,6 +33,7 @@ main() {
       "userdelold") chrootUserDel "${args}";;
       "userlistall") chrootUserList;;
       "uservisudo") chrootUserSudo;;
+      "usergivefini") chrootUserFini "${args}";;
       "setrootpassword") chrootSetRootPswd;;
     esac
   else
@@ -1371,22 +1372,45 @@ chrootUserSudo() {
 # Give $user fini
 postUserFini() {
 
+  local src="/tmp/fini.tgz"
+  if [ ! -f "$src" ]; then
+    winComplete "Error" "Could not locate archive '$src'"
+    return 1
+  fi
+
+  local dest="/mnt/root/"
+  if [ ! -d "$dest" ]; then
+    winComplete "Error" "Invalid path '$dest'"
+    return 1
+  fi
+
   users=($(awk -F: '{if ($3 >= 1000 && $3 <= 5000) { print $1 } }' /mnt/etc/passwd))
   opt=()
   for user in "${users[@]}"; do
     opt+=("${user}" "")
   done
 
-  if user=$(whiptail \
+  if choice=$(whiptail \
     --backtitle "${appName}" \
     --title "${menuUserFini[0]}" \
     --menu "${menuUserFini[2]}" 0 0 0 "${opt[@]}" \
     --cancel-button "${btnDone}" \
     3>&1 1>&2 2>&3)
     then
-
-    giveFini "$user"
+    cp "$src" "$dest"
+    execChroot usergivefini "$choice"
   fi
+
+}
+
+chrootUserFini() {
+
+  local user=${1}
+  local src='/root/fini.tgz'
+  local dest="/home/$user/"
+  cp "$src" "$dest"
+  chown "$user.$user" "${dest}${src##/*/}"
+  rm "$src"
 
 }
 
@@ -1430,18 +1454,7 @@ getFini() {
 
   cacheTo="/tmp/fini.tgz"
   if curl -sLo "$cacheTo" "$getUrl"; then
-    haveTar=1
     tar xfz "$cacheTo" --strip 1
-  fi
-
-}
-
-giveFini() {
-
-  local user=${1}
-  local dest="/home/$user"
-  if [ $haveTar == 1 ] && [ -d "$dest" ]; then
-    install -C -m 755 -o "$user" -g "$user" "$cacheTo" "$dest"
   fi
 
 }
@@ -1559,6 +1572,7 @@ parseArgs() {
         if checkMount; then
           pkgStrap "${2}"
         fi
+        exit 0
       ;;
       --chroot)
         chroot=1
