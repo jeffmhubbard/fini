@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-# fini.sh
-# a simple menu-driven Arch Linux install script
+# fini - simple menu-driven Arch Linux install script
 
 # EDIT DEFAULTS
 DEFKEYMAP="us"              # KEYBOARD LAYOUT
@@ -10,116 +9,9 @@ DEFVCFONT="default8x16"     # CONSOLE FONT
 DEFTIMZON="America/Chicago" # TIMEZONE REGION/CITY
 DEFEDITOR="vim"             # TEXT EDITOR
 
-
 runDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 pkgList="$runDir/packages.txt"
 getUrl="https://github.com/jeffmhubbard/fini/archive/master.tar.gz"
-
-main() {
-
-  if [ "${chroot}" = "1" ]; then
-
-    case ${command} in
-      "settimeutc") chrootSetTimeUTC;;
-      "settimelocal") chrootSetTimeLocal;;
-      "enabletimesyncd") chrootEnableTimesync;;
-      "setlocale") chrootSetLocale;;
-      "enabledhcpcd") chrootEnableDHCP;;
-      "enablexdm") chrootEnableXDM;;
-      "grubinstall") chrootInstallGrub;;
-      "grubinstallbios") chrootInstallGrubBIOS "${args}";;
-      "grubinstallefi") chrootInstallGrubEFI "${args}";;
-      "useraddnew") chrootUserAdd "${args}";;
-      "userdelold") chrootUserDel "${args}";;
-      "userlistall") chrootUserList;;
-      "uservisudo") chrootUserSudo;;
-      "usergivefini") chrootUserFini "${args}";;
-      "setrootpassword") chrootSetRootPswd;;
-    esac
-  else
-
-    if checkNetwork; then
-
-      # detect if new root is mounted
-      checkMount
-
-      # sync time with ntp
-      syncTime
-
-      # tweak pacman config
-      pacmanConf
-
-      # main menu
-      mainMenu
-    else
-
-      exit 1
-    fi
-  fi
-
-}
-
-# Check for internet connection
-checkNetwork() {
-
-  hasGateway() {
-
-    gateway=$(ip r | grep default | awk 'NR==1 {print $3}')
-    if ! ping -q -w 1 -c 1 "${gateway}" &> /dev/null; then
-      return 1
-    fi
-
-  }
-
-  hasInternet() {
-
-    if ! ping -c 1 -w 5 archlinux.org &>/dev/null; then 
-      return 1
-    fi
-
-  }
-
-  if ! hasGateway || ! hasInternet; then
-    if (whiptail \
-      --backtitle "${appName}" \
-      --title "ERROR" \
-      --msgbox "no internet connection" 0 0 \
-      3>&1 1>&2 2>&3)
-      then
-      exit 1
-    fi
-  fi
-
-}
-
-# Spruce up pacman for the install
-pacmanConf() {
-
-  conf="/etc/pacman.conf"
-  sed -i "/Color/s/^#//" ${conf}
-  sed -i "/TotalDownload/s/^#//" ${conf}
-  sed -i "/CheckSpace/s/^#//" ${conf}
-
-}
-
-checkMount() {
-
-  if ! mount | grep " /mnt "; then
-    haveMount=0
-    return 1
-  fi
-  haveMount=1
-
-}
-
-# Sync time
-syncTime() {
-
-  if ! timedatectl set-ntp true; then
-    winComplete "Unable to sync NTP"
-  fi
-
-}
 
 mainMenu() {
 
@@ -240,7 +132,6 @@ mainMenu() {
 
 }
 
-# Set the keyboard layout
 preSetKeyMap() {
 
   list=$(find /usr/share/kbd/keymaps/ -type f -printf "%f\n" | sort -V)
@@ -263,7 +154,6 @@ preSetKeyMap() {
 
 }
 
-## Set the console font
 preSetFont() {
 
   list=$(find /usr/share/kbd/consolefonts/*.psfu.gz -printf "%f\n")
@@ -286,7 +176,6 @@ preSetFont() {
 
 }
 
-## Set text editor
 preSetEditor() {
 
   opt=()
@@ -309,7 +198,6 @@ preSetEditor() {
 
 }
 
-# Check for UEFI
 preDetectBoot() {
 
   if [ -d "/sys/firmware/efi/efivars" ]; then
@@ -322,7 +210,6 @@ preDetectBoot() {
 
 }
 
-# Partition disks
 prePartDisk() {
 
   list=$(lsblk -dpnl -o NAME -e 7,11)
@@ -346,7 +233,6 @@ prePartDisk() {
 
 }
 
-# Set mountpoints
 prePartAssign() {
 
   list=$(lsblk -pnl -o NAME -e 7,11)
@@ -435,7 +321,6 @@ prePartAssign() {
 
 }
 
-# Format the partitions
 prePartFormat() {
 
   if (whiptail \
@@ -564,7 +449,6 @@ formatDevice() {
   
 }
 
-# Mount the file systems
 prePartMount() {
 
   msg="Mounted partitions\n\n"
@@ -601,14 +485,12 @@ prePartMount() {
 
 }
 
-# Select the mirrors
 installMirrors() {
 
   ${EDITOR} /etc/pacman.d/mirrorlist
 
 }
 
-# Sync pacman database
 installSyncDB() {
 
   if pacman -Sy >/dev/null; then
@@ -617,7 +499,6 @@ installSyncDB() {
 
 }
 
-# Install the base packages
 pkgSelectMenu() {
 
   if [ "${1}" = "" ]; then
@@ -839,7 +720,6 @@ postFstabGen() {
   
 }
 
-# Set the time
 postSetTime() {
 
   list=$(find /mnt/usr/share/zoneinfo -type d -mindepth 1 -maxdepth 1 -printf '%f\n' | sort)
@@ -925,7 +805,6 @@ chrootEnableTimesync() {
 
 }
 
-# Generate system locale
 postSetLocale() {
 
   list=$(ls /usr/share/i18n/locales)
@@ -959,7 +838,6 @@ chrootSetLocale() {
 
 }
 
-# Set the keyboard layout
 postSetKeymap() {
 
   list=$(find /usr/share/kbd/keymaps/ -type f -printf "%f\n" | sort -V)
@@ -981,7 +859,6 @@ postSetKeymap() {
 
 }
 
-# Set the console font
 postSetFont() {
 
   list=$(find /usr/share/kbd/consolefonts/*.psfu.gz -printf "%f\n")
@@ -1003,7 +880,6 @@ postSetFont() {
 
 }
 
-# Set the hostname
 postSetHostname() {
 
   if input=$(whiptail \
@@ -1029,7 +905,6 @@ EOF
 
 }
 
-# Enable DHCP client
 postEnableDHCP() {
 
   if (whiptail \
@@ -1052,7 +927,6 @@ chrootEnableDHCP() {
 
 }
 
-# Enable XDM
 postEnableXDM() {
 
   if (whiptail \
@@ -1062,7 +936,7 @@ postEnableXDM() {
     then
 
     clear
-    if pacstrap /mnt xorg-xdm; then
+    if pacstrap /mnt --needed xorg-xdm; then
       postSetGui
     fi
     execChroot enablexdm
@@ -1100,7 +974,6 @@ chrootEnableXDM() {
 
 }
 
-# Install bootloader
 installGrubMenu() {
 
   if [ "${1}" = "" ]; then
@@ -1230,7 +1103,6 @@ chrootInstallGrubEFI() {
 
 }
 
-# Set root password
 postSetRootPswd() {
 
   clear
@@ -1241,11 +1113,11 @@ postSetRootPswd() {
 chrootSetRootPswd() {
 
   passwd root
+  echo
   tuiComplete
 
 }
 
-# Manage user accounts
 postUserMenu() {
 
   opt=()
@@ -1287,7 +1159,6 @@ postUserMenu() {
 
 }
 
-# Add new user
 postUserAdd() {
 
   if input=$(whiptail \
@@ -1308,11 +1179,11 @@ chrootUserAdd() {
   useradd -m "${1}"
   passwd "${1}"
   grpck
+  echo
   tuiComplete "User ${1} added"
 
 }
 
-# Delete user
 postUserDel() {
 
   if input=$(whiptail \
@@ -1332,11 +1203,11 @@ chrootUserDel() {
 
   userdel -r -f "${1}"
   grpck
+  echo
   tuiComplete "User ${1} deleted"
 
 }
 
-# List users
 postUserList() {
 
   clear
@@ -1348,11 +1219,11 @@ chrootUserList() {
 
   echo "Users:"
   awk -F: '{if ($3 >= 1000 && $3 <= 5000) { print $1 } }' /etc/passwd
+  echo
   tuiComplete
 
 }
 
-# Run visudo
 postUserSudo() {
 
   clear
@@ -1369,7 +1240,6 @@ chrootUserSudo() {
 
 }
 
-# Give $user fini
 postUserFini() {
 
   local src="/tmp/fini.tgz"
@@ -1414,7 +1284,6 @@ chrootUserFini() {
 
 }
 
-# Unmount 
 postUnmount() {
 
   clear
@@ -1428,35 +1297,6 @@ postReboot() {
   clear
   reboot
  
-}
-
-readCustomFile() {
-
-  packages=()
-  while IFS= read -r line
-  do
-    packages+=("${line}")
-  done < "${1}"
-
-}
-
-pkgStrap() {
-
-  if readCustomFile "${1}"; then
-    if pacstrap /mnt --needed "${packages[@]}"; then
-      needConfig=1
-    fi
-  fi
-
-}
-
-getFini() {
-
-  cacheTo="/tmp/fini.tgz"
-  if curl -sLo "$cacheTo" "$getUrl"; then
-    tar xfz "$cacheTo" --strip 1
-  fi
-
 }
 
 winComplete() {
@@ -1484,7 +1324,6 @@ loadStrings() {
   strReq="(REQ)"
   strRec="(REC)"
 
-  # Menu entries (title, menu, extra)
   menuMain=("Main Menu" "Install Arch Linux" "")
 
   menuSetupKeys=("Setup: Keyboard" "Set Keyboard Layout" "")
@@ -1547,9 +1386,86 @@ loadStrings() {
   menuSysUnmount=("Continue" "Unmount And Continue" "")
   menuSysReboot=("Reboot" "Reboot System" "")
 
-  # Buttons
   btnDone="Done"
   btnQuit="Quit"
+
+}
+
+main() {
+
+  if [ "${chroot}" = "1" ]; then
+
+    case ${command} in
+      "settimeutc") chrootSetTimeUTC;;
+      "settimelocal") chrootSetTimeLocal;;
+      "enabletimesyncd") chrootEnableTimesync;;
+      "setlocale") chrootSetLocale;;
+      "enabledhcpcd") chrootEnableDHCP;;
+      "enablexdm") chrootEnableXDM;;
+      "grubinstall") chrootInstallGrub;;
+      "grubinstallbios") chrootInstallGrubBIOS "${args}";;
+      "grubinstallefi") chrootInstallGrubEFI "${args}";;
+      "useraddnew") chrootUserAdd "${args}";;
+      "userdelold") chrootUserDel "${args}";;
+      "userlistall") chrootUserList;;
+      "uservisudo") chrootUserSudo;;
+      "usergivefini") chrootUserFini "${args}";;
+      "setrootpassword") chrootSetRootPswd;;
+    esac
+  else
+
+    if checkNetwork; then
+      checkMount
+      syncTime
+      pacmanConf
+      mainMenu
+    else
+
+      exit 1
+    fi
+  fi
+
+}
+
+checkNetwork() {
+
+  if ! ping -c 1 -w 5 archlinux.org &>/dev/null; then 
+    if (whiptail \
+      --backtitle "${appName}" \
+      --title "ERROR" \
+      --msgbox "no internet connection" 0 0 \
+      3>&1 1>&2 2>&3)
+      then
+      exit 1
+    fi
+  fi
+
+}
+
+pacmanConf() {
+
+  sed -i "/Color/s/^#//
+    /TotalDownload/s/^#//
+    /CheckSpace/s/^#//" \
+    /etc/pacman.conf
+
+}
+
+checkMount() {
+
+  if ! mount | grep -q " /mnt "; then
+    haveMount=0
+    return 1
+  fi
+  haveMount=1
+
+}
+
+syncTime() {
+
+  if ! timedatectl set-ntp true; then
+    winComplete "Unable to sync NTP"
+  fi
 
 }
 
@@ -1600,7 +1516,34 @@ EOF
 
 }
 
-##############################################################################
+readCustomFile() {
+
+  packages=()
+  while IFS= read -r line
+  do
+    packages+=("${line}")
+  done < "${1}"
+
+}
+
+pkgStrap() {
+
+  if readCustomFile "${1}"; then
+    if pacstrap /mnt --needed "${packages[@]}"; then
+      needConfig=1
+    fi
+  fi
+
+}
+
+getFini() {
+
+  cacheTo="/tmp/fini.tgz"
+  if curl -sLo "$cacheTo" "$getUrl"; then
+    tar xfz "$cacheTo" --strip 1
+  fi
+
+}
 
 loadStrings
 
