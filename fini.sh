@@ -492,14 +492,6 @@ installMirrors() {
 
 }
 
-syncPacman() {
-
-  if ! pacman -Sy >/dev/null; then
-    winComplete "ERROR" "Unable to sync pacman"
-  fi
-
-}
-
 pkgSelectMenu() {
 
   if [ "${1}" = "" ]; then
@@ -723,7 +715,7 @@ postFstabGen() {
 
 postSetTime() {
 
-  list=$(find /mnt/usr/share/zoneinfo -type d -mindepth 1 -maxdepth 1 -printf '%f\n' | sort)
+  list=$(find /mnt/usr/share/zoneinfo -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
   opt=()
   for item in ${list}; do
     opt+=("${item}" "")
@@ -1095,8 +1087,7 @@ chrootInstallGrubEFI() {
   if [ ! "${1}" = "NONE" ]; then
     grub-install --target=x86_64-efi --efi-directory=/boot --recheck "${1}"
 
-    isvbox=$(lspci | grep "VirtualBox G")
-    if [ "${isvbox}" ]; then
+    if [ "${isVBox}" = 1 ]; then
       echo "\EFI\arch\grubx64.efi" > /boot/startup.nsh
     fi
   fi
@@ -1420,6 +1411,8 @@ main() {
       pacmanConf
       syncPacman
       checkMount
+      checkVBox
+      loadkeys "${DEFKEYMAP}"
       mainMenu
     else
 
@@ -1463,10 +1456,29 @@ checkMount() {
 
 }
 
+checkVBox() {
+
+  list=$(lspci | grep "VirtualBox G")
+  if [ ! "${list}" ]; then
+    isVBox=0
+    return 1
+  fi
+  isVBox=1
+
+}
+
 syncTime() {
 
   if ! timedatectl set-ntp true; then
     winComplete "Unable to sync NTP"
+  fi
+
+}
+
+syncPacman() {
+
+  if ! pacman -Sy >/dev/null; then
+    winComplete "ERROR" "Unable to sync pacman"
   fi
 
 }
