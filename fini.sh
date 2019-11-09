@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# fini - simple menu-driven Arch Linux install script
+# fini - a simple menu-driven Arch Linux install script
 
 # EDIT DEFAULTS
 DEFKEYMAP="us"              # KEYBOARD LAYOUT
@@ -1437,15 +1437,6 @@ checkNetwork() {
 
 }
 
-pacmanConf() {
-
-  sed -i "/Color/s/^#//
-    /TotalDownload/s/^#//
-    /CheckSpace/s/^#//" \
-    /etc/pacman.conf
-
-}
-
 checkMount() {
 
   if ! mount | grep -q " /mnt "; then
@@ -1472,6 +1463,15 @@ syncTime() {
   if ! timedatectl set-ntp true; then
     winComplete "Unable to sync NTP"
   fi
+
+}
+
+pacmanConf() {
+
+  sed -i "/Color/s/^#//
+    /TotalDownload/s/^#//
+    /CheckSpace/s/^#//" \
+    /etc/pacman.conf
 
 }
 
@@ -1557,6 +1557,8 @@ getFini() {
   fi
 
 }
+
+##############################################################################
 
 loadStrings
 
