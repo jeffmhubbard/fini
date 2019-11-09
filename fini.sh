@@ -9,9 +9,13 @@ DEFVCFONT="default8x16"     # CONSOLE FONT
 DEFTIMZON="America/Chicago" # TIMEZONE REGION/CITY
 DEFEDITOR="vim"             # TEXT EDITOR
 
+# DO NOT EDIT
 runDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 pkgList="$runDir/packages.txt"
 getUrl="https://github.com/jeffmhubbard/fini/archive/master.tar.gz"
+cacheTo="/tmp/fini.tgz"
+
+##############################################################################
 
 mainMenu() {
 
@@ -35,7 +39,6 @@ mainMenu() {
     opt+=("${menuPartMount[1]}" " ${strReq}")
   fi
   opt+=("${menuInstallMirror[1]}" " ${strRec}")
-  opt+=("${menuInstallSync[1]}" " ${strOpt}")
   opt+=("${menuInstallSelect[1]}" " ${strReq}")
   if [ "${needConfig}" == 1 ]; then
     opt+=("" "")
@@ -100,11 +103,9 @@ mainMenu() {
         nextItem="${menuInstallMirror[1]}"
       ;;
       "${menuInstallMirror[1]}")
-        installMirrors
-        nextItem="${menuInstallSync[1]}"
-      ;;
-      "${menuInstallSync[1]}")
-        installSyncDB
+        if installMirrors; then
+          syncPacman
+        fi
         nextItem="${menuInstallSelect[1]}"
       ;;
       "${menuInstallSelect[1]}")
@@ -491,10 +492,10 @@ installMirrors() {
 
 }
 
-installSyncDB() {
+syncPacman() {
 
-  if pacman -Sy >/dev/null; then
-    winComplete "${menuInstallSync[0]}" "Package database synced..."
+  if ! pacman -Sy >/dev/null; then
+    winComplete "ERROR" "Unable to sync pacman"
   fi
 
 }
@@ -1125,7 +1126,9 @@ postUserMenu() {
   opt+=("${menuUserDel[1]}" " ${menuUserDel[2]}")
   opt+=("${menuUserList[1]}" " ${menuUserList[2]}")
   opt+=("${menuUserSudo[1]}" " ${menuUserSudo[2]}")
-  opt+=("${menuUserFini[1]}" " ${menuUserFini[2]}")
+  if [ -f "$cacheTo" ]; then
+    opt+=("${menuUserFini[1]}" " ${menuUserFini[2]}")
+  fi
 
 
   if choice=$(whiptail \
@@ -1242,9 +1245,8 @@ chrootUserSudo() {
 
 postUserFini() {
 
-  local src="/tmp/fini.tgz"
-  if [ ! -f "$src" ]; then
-    winComplete "Error" "Could not locate archive '$src'"
+  if [ ! -f "$cacheTo" ]; then
+    winComplete "Error" "Could not locate archive '$cacheTo'"
     return 1
   fi
 
@@ -1267,7 +1269,7 @@ postUserFini() {
     --cancel-button "${btnDone}" \
     3>&1 1>&2 2>&3)
     then
-    cp "$src" "$dest"
+    cp "$cacheTo" "$dest"
     execChroot usergivefini "$choice"
   fi
 
@@ -1337,7 +1339,6 @@ loadStrings() {
   menuPartMount=("Partition: Mount" "Mount Partitions" "Mount filesystems")
 
   menuInstallMirror=("Install: Mirrors" "Edit Software Mirrors" "")
-  menuInstallSync=("Install: Sync DB" "Update Software Database" "")
   menuInstallSelect=("Install: Packages" "Install Packages" "Select software and kernel to install")
 
   menuPkgBase=("Base" "Select Base" "Just 'base'")
@@ -1415,9 +1416,10 @@ main() {
   else
 
     if checkNetwork; then
-      checkMount
       syncTime
       pacmanConf
+      syncPacman
+      checkMount
       mainMenu
     else
 
@@ -1538,7 +1540,6 @@ pkgStrap() {
 
 getFini() {
 
-  cacheTo="/tmp/fini.tgz"
   if curl -sLo "$cacheTo" "$getUrl"; then
     tar xfz "$cacheTo" --strip 1
   fi
