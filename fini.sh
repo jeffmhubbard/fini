@@ -535,7 +535,7 @@ pkgSelectMenu() {
       "${menuPkgMinimal[1]}")
         packages=("base" "base-devel" "vi" "sudo" \
           "xorg" "xorg-drivers" "xorg-apps" "xorg-xdm" \
-          "i3-wm" "i3status" "i3lock-color" "xss-lock" \
+          "i3-gaps" "i3status" "i3lock-color" "xss-lock" \
           "ttf-dejavu" "dmenu" "surf" "rxvt-unicode" \
           "zsh" "tmux" "vim" "git" "openssh" \
           "man-db" "man-pages")
@@ -900,14 +900,8 @@ EOF
 
 postEnableDHCP() {
 
-  if (whiptail \
-    --backtitle "${appName}" \
-    --title "${menuConfDhcp[0]}" \
-    --yesno "${menuConfDhcp[1]}" 0 0)
-    then
-
-    clear
-    pacstrap /mnt --needed dhcpcd
+  clear
+  if pacstrap /mnt --needed dhcpcd; then
     execChroot enabledhcpcd
   fi
 
@@ -922,16 +916,9 @@ chrootEnableDHCP() {
 
 postEnableXDM() {
 
-  if (whiptail \
-    --backtitle "${appName}" \
-    --title "${menuConfXdm[0]}" \
-    --yesno "${menuConfXdm[1]}" 0 0)
-    then
-
-    clear
-    if pacstrap /mnt --needed xorg-xdm; then
-      postSetGui
-    fi
+  clear
+  if pacstrap /mnt --needed xorg-xdm; then
+    postSetGui
     execChroot enablexdm
   fi
 
