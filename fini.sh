@@ -10,14 +10,106 @@ DEFTIMZON="America/Chicago" # TIMEZONE REGION/CITY
 DEFEDITOR="vim"             # TEXT EDITOR
 
 # DO NOT EDIT
-runDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-pkgList="$runDir/packages.txt"
-getUrl="https://github.com/jeffmhubbard/fini/archive/master.tar.gz"
-cacheTo="/tmp/fini.tgz"
+RUN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+PKG_LIST="$RUN_DIR/packages.txt"
+FETCH_URL="https://github.com/jeffmhubbard/fini/archive/master.tar.gz"
+CACHE_TGZ="/tmp/fini.tgz"
 
 ##############################################################################
 
-mainMenu() {
+main() {
+
+  if [ ! "${chroot}" = "1" ]; then
+
+    if checkNetwork; then
+      syncTime
+      pacmanConf
+      syncPacman
+      checkMount
+      checkVBox
+      installMenu
+    else
+      exit 1
+    fi
+  else
+
+    case ${command} in
+      "settimeutc") chrootSetTimeUTC;;
+      "settimelocal") chrootSetTimeLocal;;
+      "enabletimesyncd") chrootEnableTimesync;;
+      "setlocale") chrootSetLocale;;
+      "enabledhcpcd") chrootEnableDHCP;;
+      "enablexdm") chrootEnableXDM;;
+      "grubinstall") chrootInstallGrub;;
+      "grubinstallbios") chrootInstallGrubBIOS "${args}";;
+      "grubinstallefi") chrootInstallGrubEFI "${args}";;
+      "useraddnew") chrootUserAdd "${args}";;
+      "userdelold") chrootUserDel "${args}";;
+      "userlistall") chrootUserList;;
+      "uservisudo") chrootUserSudo;;
+      "usergivefini") chrootUserFini "${args}";;
+      "setrootpassword") chrootSetRootPswd;;
+    esac
+  fi
+
+}
+
+checkNetwork() {
+
+  if ! ping -c 1 -w 5 archlinux.org &>/dev/null; then
+    promptDiag "ERROR" "Network check failed!"
+    exit 1
+  fi
+
+}
+
+syncTime() {
+
+  if ! timedatectl set-ntp true; then
+    promptDiag "ERROR" "Unable to sync NTP"
+  fi
+
+}
+
+pacmanConf() {
+
+  sed -i "/Color/s/^#//
+    /TotalDownload/s/^#//
+    /CheckSpace/s/^#//" \
+    /etc/pacman.conf
+
+}
+
+syncPacman() {
+
+  if ! pacman -Sy >/dev/null; then
+    promptDiag "ERROR" "Unable to sync pacman"
+  fi
+
+}
+
+checkMount() {
+
+  if ! mount | grep -q " /mnt "; then
+    haveMount=0
+    return 1
+  fi
+  haveMount=1
+
+}
+
+checkVBox() {
+
+  list=$(lspci | grep "VirtualBox G")
+  if [ ! "${list}" ]; then
+    isVBox=0
+    return 1
+  fi
+  isVBox=1
+
+}
+
+installMenu() {
 
   if [ "${1}" = "" ]; then
     nextItem="${menuSetupBoot[1]}"
@@ -32,9 +124,7 @@ mainMenu() {
   opt+=("${menuSetupBoot[1]}" " ${strReq}")
   if [ ! "${haveMount}" == 1 ]; then
     opt+=("${menuPartDisks[1]}" " ${strOpt}")
-  fi
-  opt+=("${menuPartAssign[1]}" " ${strReq}")
-  if [ ! "${haveMount}" == 1 ]; then
+    opt+=("${menuPartAssign[1]}" " ${strReq}")
     opt+=("${menuPartFormat[1]}" " ${strOpt}")
     opt+=("${menuPartMount[1]}" " ${strReq}")
   fi
@@ -77,7 +167,7 @@ mainMenu() {
       "${menuSetupBoot[1]}")
         preDetectBoot
         if [ "${haveMount}" == 1 ]; then
-          nextItem="${menuPartAssign[1]}"
+          nextItem="${menuInstallMirror[1]}"
         else
           nextItem="${menuPartDisks[1]}"
         fi
@@ -88,11 +178,7 @@ mainMenu() {
       ;;
       "${menuPartAssign[1]}")
         prePartAssign
-        if [ "${haveMount}" == 1 ]; then
-          nextItem="${menuInstallMirror[1]}"
-        else
-          nextItem="${menuPartFormat[1]}"
-        fi
+        nextItem="${menuPartFormat[1]}"
       ;;
       "${menuPartFormat[1]}")
         prePartFormat
@@ -113,7 +199,7 @@ mainMenu() {
           pkgSelectMenu
           nextItem="${menuConfSystem[1]}"
         else
-          nextItem="${menuPartMount[1]}"
+          nextItem="${menuPartAssign[1]}"
         fi
       ;;
       "${menuConfSystem[1]}")
@@ -128,7 +214,7 @@ mainMenu() {
         postReboot
       ;;
     esac
-    mainMenu "${nextItem}"
+    installMenu "${nextItem}"
   fi
 
 }
@@ -207,7 +293,7 @@ preDetectBoot() {
     bootType="BIOS"
   fi
 
-  winComplete "${menuSetupBoot[0]}" "${bootType} boot detected..."
+  promptDiag "${menuSetupBoot[0]}" "${bootType} boot detected..."
 
 }
 
@@ -504,7 +590,7 @@ pkgSelectMenu() {
   if [ ! "$installDone" == 1 ]; then
     opt+=("${menuPkgBase[1]}" " ${menuPkgBase[2]}")
     opt+=("${menuPkgMinimal[1]}" " ${menuPkgMinimal[2]}")
-    opt+=("${menuPkgCustom[1]}" " ${pkgList##*/}")
+    opt+=("${menuPkgCustom[1]}" " ${PKG_LIST##*/}")
     opt+=("" "")
     opt+=("${menuKernelSelect[1]}" "")
     if [ "$havePkgs" == 1 ] && [ "$haveKernel" == 1 ]; then
@@ -546,7 +632,7 @@ pkgSelectMenu() {
         fi
       ;;
       "${menuPkgCustom[1]}")
-        readCustomFile "$pkgList"
+        readCustomFile "$PKG_LIST"
         if [ "${#packages[@]}" -gt 0 ]; then
           havePkgs=1
           nextItem="${menuKernelSelect[1]}"
@@ -708,7 +794,7 @@ execChroot() {
 postFstabGen() {
   
   if genfstab -U -p /mnt > /mnt/etc/fstab; then
-    winComplete "${menuConfFstab[0]}" "${menuConfFstab[2]}"
+    promptDiag "${menuConfFstab[0]}" "${menuConfFstab[2]}"
   fi
   
 }
@@ -1093,7 +1179,7 @@ chrootSetRootPswd() {
 
   passwd root
   echo
-  tuiComplete
+  promptCli
 
 }
 
@@ -1104,7 +1190,7 @@ postUserMenu() {
   opt+=("${menuUserDel[1]}" " ${menuUserDel[2]}")
   opt+=("${menuUserList[1]}" " ${menuUserList[2]}")
   opt+=("${menuUserSudo[1]}" " ${menuUserSudo[2]}")
-  if [ -f "$cacheTo" ]; then
+  if [ -f "$CACHE_TGZ" ]; then
     opt+=("${menuUserFini[1]}" " ${menuUserFini[2]}")
   fi
 
@@ -1161,7 +1247,7 @@ chrootUserAdd() {
   passwd "${1}"
   grpck
   echo
-  tuiComplete "User ${1} added"
+  promptCli ""
 
 }
 
@@ -1185,7 +1271,7 @@ chrootUserDel() {
   userdel -r -f "${1}"
   grpck
   echo
-  tuiComplete "User ${1} deleted"
+  promptCli ""
 
 }
 
@@ -1201,7 +1287,7 @@ chrootUserList() {
   echo "Users:"
   awk -F: '{if ($3 >= 1000 && $3 <= 5000) { print $1 } }' /etc/passwd
   echo
-  tuiComplete
+  promptCli ""
 
 }
 
@@ -1223,18 +1309,9 @@ chrootUserSudo() {
 
 postUserFini() {
 
-  if [ ! -f "$cacheTo" ]; then
-    winComplete "Error" "Could not locate archive '$cacheTo'"
-    return 1
-  fi
-
   local dest="/mnt/root/"
-  if [ ! -d "$dest" ]; then
-    winComplete "Error" "Invalid path '$dest'"
-    return 1
-  fi
+  local users=($(awk -F: '{if ($3 >= 1000 && $3 <= 5000) { print $1 } }' /mnt/etc/passwd))
 
-  users=($(awk -F: '{if ($3 >= 1000 && $3 <= 5000) { print $1 } }' /mnt/etc/passwd))
   opt=()
   for user in "${users[@]}"; do
     opt+=("${user}" "")
@@ -1247,7 +1324,7 @@ postUserFini() {
     --cancel-button "${btnDone}" \
     3>&1 1>&2 2>&3)
     then
-    cp "$cacheTo" "$dest"
+    cp "$CACHE_TGZ" "$dest"
     execChroot usergivefini "$choice"
   fi
 
@@ -1255,9 +1332,10 @@ postUserFini() {
 
 chrootUserFini() {
 
-  local user=${1}
-  local src='/root/fini.tgz'
+  local user="${1}"
+  local src="/root/fini.tgz"
   local dest="/home/$user/"
+
   cp "$src" "$dest"
   chown "$user.$user" "${dest}${src##/*/}"
   rm "$src"
@@ -1279,17 +1357,20 @@ postReboot() {
  
 }
 
-winComplete() {
+promptDiag() {
+
+  local title="${1}"
+  local msg="${2}"
 
   whiptail \
     --backtitle "${appName}" \
-    --title "$1" \
-    --msgbox "$2" 0 0 \
+    --title "$title" \
+    --msgbox "$msg" 0 0 \
     3>&1 1>&2 2>&3
 
 }
 
-tuiComplete() {
+promptCli() {
 
   [[ -n "$*" ]] && echo "$*"
   read -n1 -r -p "Press any key to continue..."
@@ -1321,7 +1402,7 @@ loadStrings() {
 
   menuPkgBase=("Base" "Select Base" "Just 'base'")
   menuPkgMinimal=("Desktop" "Select Desktop" "i3, urxvt, surf")
-  menuPkgCustom=("Custom" "Select Custom" "${pkgList}")
+  menuPkgCustom=("Custom" "Select Custom" "${PKG_LIST}")
 
   menuKernelSelect=("Install: Kernel" "Select Kernel" "")
   menuKernelLinux=("Vanilla" "Install Standard Kernel" "linux")
@@ -1370,106 +1451,6 @@ loadStrings() {
 
 }
 
-main() {
-
-  if [ "${chroot}" = "1" ]; then
-
-    case ${command} in
-      "settimeutc") chrootSetTimeUTC;;
-      "settimelocal") chrootSetTimeLocal;;
-      "enabletimesyncd") chrootEnableTimesync;;
-      "setlocale") chrootSetLocale;;
-      "enabledhcpcd") chrootEnableDHCP;;
-      "enablexdm") chrootEnableXDM;;
-      "grubinstall") chrootInstallGrub;;
-      "grubinstallbios") chrootInstallGrubBIOS "${args}";;
-      "grubinstallefi") chrootInstallGrubEFI "${args}";;
-      "useraddnew") chrootUserAdd "${args}";;
-      "userdelold") chrootUserDel "${args}";;
-      "userlistall") chrootUserList;;
-      "uservisudo") chrootUserSudo;;
-      "usergivefini") chrootUserFini "${args}";;
-      "setrootpassword") chrootSetRootPswd;;
-    esac
-  else
-
-    if checkNetwork; then
-      syncTime
-      pacmanConf
-      syncPacman
-      checkMount
-      checkVBox
-      loadkeys "${DEFKEYMAP}"
-      mainMenu
-    else
-
-      exit 1
-    fi
-  fi
-
-}
-
-checkNetwork() {
-
-  if ! ping -c 1 -w 5 archlinux.org &>/dev/null; then 
-    if (whiptail \
-      --backtitle "${appName}" \
-      --title "ERROR" \
-      --msgbox "no internet connection" 0 0 \
-      3>&1 1>&2 2>&3)
-      then
-      exit 1
-    fi
-  fi
-
-}
-
-checkMount() {
-
-  if ! mount | grep -q " /mnt "; then
-    haveMount=0
-    return 1
-  fi
-  haveMount=1
-
-}
-
-checkVBox() {
-
-  list=$(lspci | grep "VirtualBox G")
-  if [ ! "${list}" ]; then
-    isVBox=0
-    return 1
-  fi
-  isVBox=1
-
-}
-
-syncTime() {
-
-  if ! timedatectl set-ntp true; then
-    winComplete "Unable to sync NTP"
-  fi
-
-}
-
-pacmanConf() {
-
-  sed -i "/Color/s/^#//
-    /TotalDownload/s/^#//
-    /CheckSpace/s/^#//" \
-    /etc/pacman.conf
-
-}
-
-syncPacman() {
-
-  if ! pacman -Sy >/dev/null; then
-    winComplete "ERROR" "Unable to sync pacman"
-  fi
-
-}
-
 parseArgs() {
 
   while (( "$#" )); do
@@ -1483,7 +1464,7 @@ parseArgs() {
         exit 0
       ;;
       -l | --list)
-        pkgList="${2}"
+        PKG_LIST="${2}"
       ;;
       --pacstrap)
         if checkMount; then
@@ -1539,8 +1520,8 @@ pkgStrap() {
 
 getFini() {
 
-  if curl -sLo "$cacheTo" "$getUrl"; then
-    tar xfz "$cacheTo" --strip 1
+  if curl -sLo "$CACHE_TGZ" "$FETCH_URL"; then
+    tar xfz "$CACHE_TGZ" --strip 1
   fi
 
 }
