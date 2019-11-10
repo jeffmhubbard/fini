@@ -131,10 +131,8 @@ installMenu() {
   opt+=("${menuInstallMirror[1]}" " ${strRec}")
   opt+=("${menuInstallSelect[1]}" " ${strReq}")
   if [ "${needConfig}" == 1 ]; then
-    opt+=("" "")
     opt+=("${menuConfSystem[1]}" " ${strReq}")
   fi
-  opt+=("" "")
   if [ "${haveMount}" == 1 ]; then
     opt+=("${menuSysUnmount[1]}" " ${strOpt}")
   fi
@@ -148,8 +146,7 @@ installMenu() {
     --menu "" 0 0 0 "${opt[@]}" \
     --default-item "${nextItem}" \
     --cancel-button "${btnQuit}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     case ${choice} in
       "${menuSetupKeys[1]}")
@@ -232,8 +229,7 @@ preSetKeyMap() {
     --title "${menuSetupKeys[0]}" \
     --menu "" 0 0 0 "${opt[@]}" \
     --default-item "${DEFKEYMAP}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     DEFKEYMAP="${choice}"
     loadkeys "${choice}"
@@ -254,8 +250,7 @@ preSetFont() {
     --title "${menuSetupFont[0]}" \
     --menu "" 0 0 0 "${opt[@]}" \
     --default-item "${DEFVCFONT}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     DEFVCFONT="${choice}"
     eval "$(setfont "${choice}")"
@@ -275,12 +270,11 @@ preSetEditor() {
     --title "${menuSetupEdit[0]}" \
     --menu "" 0 0 0 "${opt[@]}" \
     --default-item "${DEFEDITOR}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     EDITOR=${choice}
     DEFEDITOR=${choice}
-    export "${EDITOR?}"
+    export EDITOR
   fi
 
 }
@@ -311,8 +305,7 @@ prePartDisk() {
     --menu "\n${menuPartDisks[2]}" 0 0 0 "${opt[@]}" \
     --cancel-button "${btnDone}" \
     3>&1 1>&2 2>&3) && \
-    [ -b "${choice}" ]
-    then
+    [ -b "${choice}" ]; then
 
     cfdisk "${choice}"
     prePartDisk
@@ -334,9 +327,9 @@ prePartAssign() {
     --backtitle "${appName}" \
     --title "${menuPartAssign[0]}" \
     --menu "\nChoose '/' partition" 0 0 0 "${opt[@]}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
+    promptDiag "ERROR" "You must assign a root partition!"
     return 1
   fi
 
@@ -344,8 +337,7 @@ prePartAssign() {
     --backtitle "${appName}" \
     --title "${menuPartAssign[0]}" \
     --menu "\nChoose '/boot' partition" 0 0 0 "NONE" "" "${opt[@]}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     if [ "${bootDev}" = "NONE" ]; then
       bootDev=
@@ -358,8 +350,7 @@ prePartAssign() {
     --backtitle "${appName}" \
     --title "${menuPartAssign[0]}" \
     --menu "\nChoose 'SWAP' partition" 0 0 0 "NONE" "" "${opt[@]}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     if [ "${swapDev}" = "NONE" ]; then
       swapDev=
@@ -372,8 +363,7 @@ prePartAssign() {
     --backtitle "${appName}" \
     --title "${menuPartAssign[0]}" \
     --menu "\nChoose '/home' partition" 0 0 0 "NONE" "" "${opt[@]}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     if [ "${homeDev}" = "NONE" ]; then
       homeDev=
@@ -400,8 +390,7 @@ prePartAssign() {
     --backtitle "${appName}" \
     --title "${menuPartAssign[0]}" \
     --yesno "${msg}" 0 0 \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     prePartAssign
   fi
@@ -450,8 +439,7 @@ formatBoot() {
     --backtitle "${appName}" \
     --title "${menuPartFormat[0]}" \
     --menu "\nSelect filesystem for '${2}'" 0 0 0 "${opt[@]}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     return 1
   fi
@@ -483,8 +471,7 @@ formatSwap() {
     --backtitle "${appName}" \
     --title "${menuPartFormat[0]}" \
     --menu "\nSelect filesystem for '${2}'" 0 0 0 "${opt[@]}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     return 1
   fi
@@ -511,8 +498,7 @@ formatDevice() {
     --title "${menuPartFormat[0]}" \
     --menu "\nSelect filesystem for '${2}'" 0 0 0 "${opt[@]}" \
     --default-item "ext4" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     return 1
   fi
@@ -564,8 +550,7 @@ prePartMount() {
     --backtitle "${appName}" \
     --title "${menuPartMount[0]}" \
     --msgbox "${msg}" 0 0 \
-    3>&1 1>&2 2>&3)
-  then
+    3>&1 1>&2 2>&3); then
 
     checkMount
   fi
@@ -607,8 +592,7 @@ pkgSelectMenu() {
     --menu "" 0 0 0 "${opt[@]}" \
     --default-item "${nextItem}" \
     --cancel-button "${btnDone}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     case ${choice} in
       "${menuPkgBase[1]}")
@@ -676,8 +660,7 @@ kernelSelectMenu() {
     --backtitle "${appName}" \
     --title "${menuKernelSelect[0]}" \
     --menu "" 0 0 0 "${opt[@]}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     case ${choice} in
       "${menuKernelLinux[1]}")
@@ -726,8 +709,7 @@ configMenu() {
     --menu "" 0 0 0 "${opt[@]}" \
     --default-item "${nextItem}" \
     --cancel-button "${btnDone}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     case ${choice} in
       "${menuConfFstab[1]}")
@@ -812,8 +794,7 @@ postSetTime() {
     --title "${menuTimeRegion[0]}" \
     --menu "" 0 0 0 "${opt[@]}" \
     --default-item "${DEFTIMZON%%/*}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     return 1
   fi
@@ -829,8 +810,7 @@ postSetTime() {
     --title "${menuTimeCity[0]}" \
     --menu "" 0 0 0 "${opt[@]}" \
     --default-item "${DEFTIMZON##*/}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     return 1
   fi
@@ -897,8 +877,7 @@ postSetLocale() {
     --title "${menuConfLocale[0]}" \
     --menu "" 0 0 0 "${opt[@]}" \
     --default-item "${DEFLOCALE}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     clear
     echo "LANG=${choice}.UTF-8" > /mnt/etc/locale.conf
@@ -930,8 +909,7 @@ postSetKeymap() {
     --title "${menuConfKeymap[0]}" \
     --menu "" 0 0 0 "${opt[@]}" \
     --default-item "${DEFKEYMAP}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     echo "KEYMAP=${choice}" > /mnt/etc/vconsole.conf
   fi
@@ -951,8 +929,7 @@ postSetFont() {
     --title "${menuConfFont[0]}" \
     --menu "" 0 0 0 "${opt[@]}" \
     --default-item "${DEFVCFONT}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     echo "FONT=${choice}" >> /mnt/etc/vconsole.conf
   fi
@@ -965,8 +942,7 @@ postSetHostname() {
     --backtitle "${appName}" \
     --title "${menuConfHostname[0]}" \
     --inputbox "${menuConfHostname[1]}" 0 0 "archlinux" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     echo -e "${input}" > /mnt/etc/hostname
     writeHostsFile "${input}" /mnt/etc/hosts
@@ -1063,8 +1039,7 @@ installGrubMenu() {
     --menu "" 0 0 0 "${opt[@]}" \
     --default-item "${nextItem}" \
     --cancel-button "${btnDone}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     case ${choice} in
       "${menuGrubInstall[1]}")
@@ -1132,8 +1107,7 @@ installGrubBoot() {
     --title "${menuConfBoot[0]}" \
     --menu "${menuConfBoot[2]}" 0 0 0 "${opt[@]}" \
     --default-item "${bootDev}" \
-    3>&1 1>&2 2>&3)
-  then
+    3>&1 1>&2 2>&3); then
 
     if [ "${bootType}" == "EFI" ]; then
       clear
@@ -1201,8 +1175,7 @@ postUserMenu() {
     --menu "" 0 0 0 "${opt[@]}" \
     --default-item "${nextItem}" \
     --cancel-button "${btnDone}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
 
     case $choice in
       "${menuUserAdd[1]}")
@@ -1232,8 +1205,7 @@ postUserAdd() {
     --backtitle "${appName}" \
     --title "${menuUserAdd[1]}" \
     --inputbox "Enter user name:" 0 0 \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
  
     clear
     execChroot useraddnew "${input}"
@@ -1257,8 +1229,7 @@ postUserDel() {
     --backtitle "${appName}" \
     --title "${menuUserDel[1]}" \
     --inputbox "Enter user to delete" 0 0 \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
  
     clear
     execChroot userdelold "${input}"
@@ -1322,8 +1293,7 @@ postUserFini() {
     --title "${menuUserFini[0]}" \
     --menu "${menuUserFini[2]}" 0 0 0 "${opt[@]}" \
     --cancel-button "${btnDone}" \
-    3>&1 1>&2 2>&3)
-    then
+    3>&1 1>&2 2>&3); then
     cp "$CACHE_TGZ" "$dest"
     execChroot usergivefini "$choice"
   fi
@@ -1381,9 +1351,9 @@ loadStrings() {
 
   appName="$(basename "${0}")"
 
-  strOpt="(OPT)"
-  strReq="(REQ)"
-  strRec="(REC)"
+  strOpt="   "
+  strReq=" **"
+  strRec=" ++"
 
   menuMain=("Main Menu" "Install Arch Linux" "")
 
