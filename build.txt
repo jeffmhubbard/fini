@@ -1,9 +1,10 @@
 dunst-git dunst
 gcalcli
 i3ipc-glib-git
-nerd-fonts-complete
+nerd-fonts-hack
 neofetch-git neofetch
 polybar
 rxvt-unicode-cvs-patched-wideglyphs rxvt-unicode
 unclutter-xfixes-git unclutter
 xcursor-openzone
+wmfocus-git
