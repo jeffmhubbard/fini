@@ -56,7 +56,7 @@ main() {
 
 checkNetwork() {
 
-  if ! ping -c 1 -w 5 archlinux.org &>/dev/null; then
+  if ! ping -4 -c 1 -w 5 archlinux.org &>/dev/null; then
     promptDiag "ERROR" "Network check failed!"
     exit 1
   fi
@@ -604,7 +604,7 @@ pkgSelectMenu() {
       ;;
       "${menuPkgMinimal[1]}")
         packages=("base" "base-devel" "vi" "sudo" \
-          "xorg" "xorg-drivers" "xorg-apps" "xorg-xdm" \
+          "xorg" "xorg-drivers" "xorg-apps" \
           "i3-gaps" "i3status" "i3lock-color" "xss-lock" \
           "ttf-dejavu" "dmenu" "surf" "rxvt-unicode" \
           "zsh" "tmux" "vim" "git" "openssh" \
@@ -1351,9 +1351,9 @@ loadStrings() {
 
   appName="$(basename "${0}")"
 
-  strOpt="   "
-  strReq=" **"
-  strRec=" ++"
+  strOpt="  "
+  strReq="**"
+  strRec="  "
 
   menuMain=("Main Menu" "Install Arch Linux" "")
 
@@ -1385,7 +1385,7 @@ loadStrings() {
 
   menuConfSystem=("Install: Configure" "Configure New Install" "")
 
-  menuConfFstab=("Configure: Fstab" "Generate Filesystem Table" "Fstab generated...")
+  menuConfFstab=("Configure: Fstab" "Generate Fstab" "Generated '/etc/fstab' file")
   menuConfTime=("Configure: Timezone" "Set System Time" "")
   menuTimeRegion=("Configure: Region" "Select Region" "")
   menuTimeCity=("Configure: City" "Select City" "")
