@@ -1493,7 +1493,7 @@ pkgStrap() {
 getFini() {
 
   if curl -sLo "$CACHE_TGZ" "$FETCH_URL"; then
-    tar xfz "$CACHE_TGZ" --strip 1
+    tar xfz "$CACHE_TGZ" --strip 1 --exclude="*.md"
   fi
 
 }
