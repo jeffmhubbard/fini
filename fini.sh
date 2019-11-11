@@ -23,7 +23,7 @@ main() {
 
     if checkNetwork; then
       syncTime
-      pacmanConf
+      pacmanConf "/etc/pacman.conf"
       syncPacman
       checkMount
       checkVBox
@@ -73,10 +73,11 @@ syncTime() {
 
 pacmanConf() {
 
+  local file="${1}"
   sed -i "/Color/s/^#//
     /TotalDownload/s/^#//
     /CheckSpace/s/^#//" \
-    /etc/pacman.conf
+    "$file"
 
 }
 
@@ -200,6 +201,7 @@ installMenu() {
         fi
       ;;
       "${menuConfSystem[1]}")
+        pacmanConf "/mnt/etc/pacman.conf"
         configMenu
         nextItem="${menuSysReboot[1]}"
       ;;
