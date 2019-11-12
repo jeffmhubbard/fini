@@ -45,7 +45,6 @@ main() {
       "grubinstallefi") chrootInstallGrubEFI "${args}";;
       "useraddnew") chrootUserAdd "${args}";;
       "userdelold") chrootUserDel "${args}";;
-      "userlistall") chrootUserList;;
       "uservisudo") chrootUserSudo;;
       "usergivefini") chrootUserFini "${args}";;
       "setrootpassword") chrootSetRootPswd;;
@@ -1162,12 +1161,12 @@ chrootSetRootPswd() {
 postUserMenu() {
 
   opt=()
-  opt+=("${menuUserAdd[1]}" " ${menuUserAdd[2]}")
-  opt+=("${menuUserDel[1]}" " ${menuUserDel[2]}")
-  opt+=("${menuUserList[1]}" " ${menuUserList[2]}")
-  opt+=("${menuUserSudo[1]}" " ${menuUserSudo[2]}")
+  opt+=("${menuUserAdd[1]}" " ")
+  opt+=("${menuUserDel[1]}" " ")
+  opt+=("${menuUserList[1]}" " ")
+  opt+=("${menuUserSudo[1]}" " ")
   if [ -f "$CACHE_TGZ" ]; then
-    opt+=("${menuUserFini[1]}" " ${menuUserFini[2]}")
+    opt+=("${menuUserFini[1]}" " ")
   fi
 
 
@@ -1206,7 +1205,7 @@ postUserAdd() {
   if input=$(whiptail \
     --backtitle "${appName}" \
     --title "${menuUserAdd[1]}" \
-    --inputbox "Enter user name:" 0 0 \
+    --inputbox "Enter user name" 0 0 \
     3>&1 1>&2 2>&3); then
  
     clear
@@ -1250,17 +1249,17 @@ chrootUserDel() {
 
 postUserList() {
 
-  clear
-  execChroot userlistall
+  #clear
+  #execChroot userlistall
 
-}
+  local users
+  users="$(awk -F: '{if ($3 >= 1000 && $3 <= 5000) { print $1 } }' /mnt/etc/passwd)"
 
-chrootUserList() {
-
-  echo "Users:"
-  awk -F: '{if ($3 >= 1000 && $3 <= 5000) { print $1 } }' /etc/passwd
-  echo
-  promptCli ""
+  whiptail \
+    --backtitle "${appName}" \
+    --title "${menuUserList[0]}" \
+    --msgbox "${users}" 0 0 \
+    3>&1 1>&2 2>&3
 
 }
 
@@ -1409,9 +1408,9 @@ loadStrings() {
   menuConfUser=("Manage Users" "Manage User Accounts" "")
   menuUserAdd=("Add" "Add New User" "")
   menuUserDel=("Delete" "Delete Existing User" "")
-  menuUserList=("List" "List User Accounts" "")
+  menuUserList=("User List" "List User Accounts" "")
   menuUserSudo=("Privileges" "Edit Sudoers File" "")
-  menuUserFini=("Fini" "Give User Fini" "")
+  menuUserFini=("Give Fini" "Give User Fini" "Select user")
   
   menuConfRoot=("Admin Password" "Set Root Password" "")
 
