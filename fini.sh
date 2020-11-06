@@ -937,7 +937,7 @@ postSetHostname() {
   if input=$(whiptail \
     --backtitle "${appName}" \
     --title "${menuConfHostname[0]}" \
-    --inputbox "${menuConfHostname[1]}" 0 0 "archlinux" \
+    --inputbox "${menuConfHostname[1]}" 0 0 "penguin" \
     3>&1 1>&2 2>&3); then
 
     echo -e "${input}" > /mnt/etc/hostname
