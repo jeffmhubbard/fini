@@ -1,6 +1,6 @@
 # fini
 
-simple menu-driven Arch Linux install script  
+simple menu-driven Penguin install script  
 
 Get everything (to CWD)  
 `curl -sL git.io/Je83b | bash -s -- --fetch`

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# fini - a simple menu-driven Arch Linux install script
+# fini - simple menu-driven Penguin install script
 
 # EDIT DEFAULTS
 DEFKEYMAP="us"              # KEYBOARD LAYOUT
@@ -39,7 +39,7 @@ main() {
       "enabletimesyncd") chrootEnableTimesync;;
       "setlocale") chrootSetLocale;;
       "enabledhcpcd") chrootEnableDHCP;;
-      "enablexdm") chrootEnableXDM;;
+      "enableldm") chrootEnableLDM;;
       "grubinstall") chrootInstallGrub;;
       "grubinstallbios") chrootInstallGrubBIOS "${args}";;
       "grubinstallefi") chrootInstallGrubEFI "${args}";;
@@ -597,19 +597,14 @@ pkgSelectMenu() {
 
     case ${choice} in
       "${menuPkgBase[1]}")
-        packages=("base")
+        packages=("penguin-base")
         if [ "${#packages[@]}" -gt 0 ]; then
           havePkgs=1
           nextItem="${menuKernelSelect[1]}"
         fi
       ;;
       "${menuPkgMinimal[1]}")
-        packages=("base" "base-devel" "vi" "sudo" \
-          "xorg" "xorg-drivers" "xorg-apps" \
-          "i3-gaps" "i3status" "i3lock-color" "xss-lock" \
-          "ttf-dejavu" "dmenu" "surf" "rxvt-unicode" \
-          "zsh" "tmux" "vim" "git" "openssh" \
-          "man-db" "man-pages")
+        packages=("penguin-base penguin-desktop penguin-defaults")
 
         if [ "${#packages[@]}" -gt 0 ]; then
           havePkgs=1
@@ -699,7 +694,7 @@ configMenu() {
   opt+=("${menuConfFont[1]}" " ${strOpt}")
   opt+=("${menuConfHostname[1]}" " ${strReq}")
   opt+=("${menuConfDhcp[1]}" " ${strRec}")
-  opt+=("${menuConfXdm[1]}" " ${strOpt}")
+  opt+=("${menuConfLdm[1]}" " ${strOpt}")
   opt+=("${menuConfBoot[1]}" " ${strRec}")
   opt+=("${menuConfUser[1]}" " ${strOpt}")
   opt+=("${menuConfRoot[1]}" " ${strReq}")
@@ -739,10 +734,10 @@ configMenu() {
       ;;
       "${menuConfDhcp[1]}")
         postEnableDHCP
-        nextItem="${menuConfXdm[1]}"
+        nextItem="${menuConfLdm[1]}"
       ;;
-      "${menuConfXdm[1]}")
-        postEnableXDM
+      "${menuConfLdm[1]}")
+        postEnableLDM
         nextItem="${menuConfBoot[1]}"
       ;;
       "${menuConfBoot[1]}")
@@ -882,7 +877,7 @@ postSetLocale() {
 
     clear
     echo "LANG=${choice}.UTF-8" > /mnt/etc/locale.conf
-    echo "LC_COLLATE=C" >> /mnt/etc/locale.conf
+    #echo "LC_COLLATE=C" >> /mnt/etc/locale.conf
     sed -i "/${choice}.UTF-8/s/^#//g" /mnt/etc/locale.gen
 
     execChroot setlocale
@@ -977,12 +972,12 @@ chrootEnableDHCP() {
 
 }
 
-postEnableXDM() {
+postEnableLDM() {
 
   clear
-  if pacstrap /mnt --needed xorg-xdm; then
+  if pacstrap /mnt --needed lightdm; then
     postSetGui
-    execChroot enablexdm
+    execChroot enableldm
   fi
 
 }
@@ -1010,9 +1005,9 @@ EOF
 
 }
 
-chrootEnableXDM() {
+chrootEnableLDM() {
 
-  systemctl enable xdm
+  systemctl enable lightdm
   exit
 
 }
@@ -1398,7 +1393,8 @@ loadStrings() {
   menuConfFont=("Configure: Font" "Set Console Font" "")
   menuConfHostname=("Configure: Hostname" "Set System Hostname" "")
   menuConfDhcp=("Configure: DHCP" "Enable DHCP Client" "")
-  menuConfXdm=("Configure: XDM" "Enable Display Manager" "")
+  #menuConfXdm=("Configure: XDM" "Enable Display Manager" "")
+  menuConfLdm=("Configure: LightDM" "Enable Display Manager" "")
 
   menuConfBoot=("GRUB: Bootloader" "Install Bootloader" "Select device")
   menuGrubInstall=("GRUB: Install" "Install GRUB" "")
